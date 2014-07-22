@@ -235,13 +235,15 @@ sub complete_cli_arg {
 
 =head1 SYNOPSIS
 
-See L<Getopt::Long::WithComp> for an easy way to use this module.
+See L<Getopt::Long::Complete> for an easy way to use this module.
 
 
 =head1 DESCRIPTION
 
 
 =head1 SEE ALSO
+
+L<Getopt::Long::Complete>
 
 L<Complete>
 
