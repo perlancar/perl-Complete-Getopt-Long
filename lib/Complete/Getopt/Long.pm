@@ -181,6 +181,7 @@ sub complete_cli_arg {
                 }
                 $what = +($words->[$i] // '') =~ /\A-/ ?
                     'optname' : 'optname,arg';
+                $i++;
                 next OPT;
             } else {
                 # assume nonexisting option to be with no value
