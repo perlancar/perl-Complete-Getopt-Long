@@ -60,7 +60,6 @@ suitable to use here. Example:
 
 _
             schema      => 'hash*',
-            req         => 1,
         },
         words => {
             summary     => 'Command line, already broken into words',
@@ -104,19 +103,20 @@ _
                 words       => [qw//],
                 cword       => 0,
             },
-            result  => ['--help', '--arg1', '--arg2', '-a', '-b', '-h'],
+            result  => ['--arg1', '--arg2', '--help', '-a', '-b', '-h'],
         },
-        {
-            args => {
-                getopt_spec => {'help|h'=>sub{}, 'arg1|a=s'=>sub{},
-                                'arg2|b=s'=>sub{}},
-                words       => [qw/--arg1 one --a/],
-                cword       => 2,
-            },
-            result  => ['--arg2'],
-            summary => '--arg1 by default is no longer completed, unless '.
-                'it assigns to array or has a "+" specifier',
-        },
+        # not yet implemented
+        #{
+        #    args => {
+        #        getopt_spec => {'help|h'=>sub{}, 'arg1|a=s'=>sub{},
+        #                        'arg2|b=s'=>sub{}},
+        #        words       => [qw/--arg1 one --a/],
+        #        cword       => 2,
+        #    },
+        #    result  => ['--arg2'],
+        #    summary => '--arg1 by default is no longer completed, unless '.
+        #        'it assigns to array or has a "+" specifier',
+        #},
     ],
 };
 sub complete_cli_arg {
