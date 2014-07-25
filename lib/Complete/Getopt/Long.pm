@@ -15,6 +15,21 @@ our @EXPORT_OK = qw(
 
 our %SPEC;
 
+# return the key/element if $opt expands unambiguously to exactly one
+# key/element in $opts (which can be a hash or array), otherwise return undef.
+# e.g. _expand1('--fo', [qw/--foo --bar --baz/]) is true, but _expand1('--ba',
+# ...) or _expand1('--qux', ...) are undef.
+sub _expand1 {
+    my ($opt, $opts) = @_;
+    my @candidates;
+    my $is_hash = ref($opts) eq 'HASH';
+    for ($is_hash ? (keys %$opts) : @$opts) {
+        next unless index($_, $opt) == 0;
+        push @candidates, $is_hash ? $opts->{$_} : $_;
+    }
+    return @candidates == 1 ? $candidates[0] : undef;
+}
+
 $SPEC{complete_cli_arg} = {
     v => 1.1,
     summary => 'Complete command-line argument using '.
@@ -137,87 +152,117 @@ sub complete_cli_arg {
     for my $ospec (keys %$gospec) {
         my $res = Getopt::Long::Util::parse_getopt_long_opt_spec($ospec)
             or die "Can't parse option spec '$ospec'";
+        $res->{min_vals} //= $res->{type} ? 1 : 0;
+        $res->{max_vals} //= $res->{type} || $res->{opttype} ? 1:0;
         for my $o0 (@{ $res->{opts} }) {
             my @o = $res->{is_neg} ? ($o0, "no$o0", "no-$o0") : ($o0);
             for my $o (@o) {
                 my $k = length($o) > 1 ? "--$o" : "-$o";
                 $opts{$k} = {
-                    ospec => $ospec,
-                    min_vals => $res->{min_vals} //
-                        ($res->{type} ? 1 : 0),
-                    max_vals => $res->{max_vals} //
-                        ($res->{type} || $res->{opttype} ? 1:0),
+                    name => $k,
+                    ospec => $ospec, # key to getopt specification
+                    parsed => $res,
                 };
             }
         }
     }
     my @optnames = sort keys %opts;
 
-    my $opt;
-    my $what = 'optname,arg';
-    my $lastopt;
-    my $ohash;
-    my $i = 0;
-    my $word;
-  OPT:
-    while ($i < $cword) {
-        my $w = $words->[$i] // '';
-        #say "D:i=$i, w=$w, cword=$cword, remaining=[".join(", ", @{$words}[$i+1..@$words-1])."]";
-        if ($w eq '--') {
-            $what = 'arg';
-            last OPT;
+    my %seen_opts;
+    my @expects; # what each word expect (hash of optname,optval,arg,separator)
+
+    my $i = -1;
+
+  WORD:
+    while (1) {
+        $i++;
+        last WORD if $i >= @$words;
+        my $word = $words->[$i];
+        #say "D:i=$i, word=$word, ~~\@\$words=",~~@$words;
+
+        if ($word eq '--' && $i != $cword) {
+            $expects[$i] = {separator=>1};
+            while (1) {
+                $i++;
+                last WORD if $i >= @$words;
+                $expects[$i] = {arg=>1};
+            }
         }
-        # should always be the case
-        if ($what =~ /optname/) {
-            # --foo^=, --foo=^, or --foo= ^
-            if ($i+1 <= @$words && ($words->[$i+1] // '') eq '=') {
-                if ($i+2 >= $cword) {
-                    if ($i+1 == $cword) {
-                        $word = '';
-                    }
-                    $ohash = $opts{$w};
-                    return [] unless $ohash;
-                    $what = 'optval';
-                    last OPT;
-                }
-                $i+=2;
-                next;
-            } elsif ($opts{$w}) {
-                $ohash = $opts{$w};
-                $what = 'optval';
-                $i += $ohash->{min_vals};
-                last OPT if $i >= $cword;
-                $what = 'optname,optval,arg';
-                for my $j (($ohash->{min_vals}+1) .. ($ohash->{max_vals})) {
+
+        if ($word =~ /\A-/) {
+            my $opt = $word; $opt =~ s/=.*//;
+            my $opthash = _expand1($opt, \%opts);
+            if ($opthash) {
+                # a known argument
+                $opt = $opthash->{name};
+                $expects[$i]{optname} = $opt;
+                $seen_opts{ $opt }++;
+                my $min_vals = $opthash->{parsed}{min_vals};
+                my $max_vals = $opthash->{parsed}{max_vals};
+                for (1 .. $min_vals) {
                     $i++;
-                    last OPT if $i >= @$words;
-                    if ($words->[$i] =~ /\A-/) {
-                        $what = 'optname';
-                        next OPT;
-                    }
+                    last WORD if $i >= @$words;
+                    $expects[$i]{optval} = $opt;
                 }
-                $what = +($words->[$i] // '') =~ /\A-/ ?
-                    'optname' : 'optname,arg';
-                $i++;
-                next OPT;
+                for (1 .. $max_vals-$min_vals) {
+                    last if $i+$_ >= @$words;
+                    last if $words->[$i+$_] =~ /\A-/; # a new option
+                    $expects[$i+$_]{optval} = $opt; # but can also be optname
+                }
+                next WORD;
             } else {
-                # assume nonexisting option to be with no value
+                # an unknown option, assume it doesn't require argument
+                $opt = undef;
+                $expects[$i]{optname} = $opt;
+            }
+            # = after --opt
+            if ($i+1 < @$words && $words->[$i+1] eq '=') {
                 $i++;
-                next OPT;
+                $expects[$i] = {separator => 1};
+                if ($i+1 < @$words) {
+                    $i++;
+                    $expects[$i]{optval} = $opt;
+                }
+                next WORD;
             }
         }
     }
 
+    #use DD; dd \@expects;
+
+    my $word = $words->[$cword];
+    my $exp = $expects[$cword];
     my @res;
-    $word //= $words->[$cword] // '';
-    #say "D:---";
-    #say "D:word=$word, what=$what";
-    if ($what =~ /optname/) {
+    if (exists $exp->{optname}) {
+        my $opt = $exp->{optname};
+        # complete option names
+        my @o;
+        for (@optnames) {
+            #say "D:$_";
+            my $repeatable = 0;
+            if ($seen_opts{$_}) {
+                my $opthash = $opts{$_};
+                my $ospecval = $gospec->{$opthash->{ospec}};
+                my $parsed = $opthash->{parsed};
+                if (ref($ospecval) eq 'ARRAY') {
+                    $repeatable = 1;
+                } elsif ($parsed->{desttype} || $parsed->{is_inc}) {
+                    $repeatable = 1;
+                }
+            }
+            # skip options that have been specified and not repeatable
+            next if $seen_opts{$_} && !$repeatable && (!$opt || $opt eq $_);
+            #use DD; dd {seen=>$seen_opts{$_}, repeatable=>$repeatable, opt=>$opt};
+            push @o, $_;
+        }
+        #use DD; dd \@o;
         push @res, @{ Complete::Util::complete_array_elem(
-            array => \@optnames, word => $word) };
+            array => \@o, word => $word) };
     }
-    if ($what =~ /optval/ && $ohash && $comps) {
-        my $comp = $comps->{$ohash->{ospec}};
+    if (exists($exp->{optval}) && $comps) {
+        my $opt = $exp->{optval};
+        my $opthash = $opts{$opt};
+        my $comp = $comps->{$opthash->{ospec}};
         if (ref($comp) eq 'ARRAY') {
             push @res, @{ Complete::Util::complete_array_elem(
                 array => \@$comp, word => $word) };
@@ -231,7 +276,8 @@ sub complete_cli_arg {
             }
         }
     }
-    if ($what =~ /arg/ && $comps) {
+
+    if (exists($exp->{arg}) && $comps) {
         my $comp = $comps->{''};
         if (ref($comp) eq 'ARRAY') {
             push @res, @$comp;

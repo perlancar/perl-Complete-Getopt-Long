@@ -148,6 +148,7 @@ sub test_complete {
         my $res = Complete::Getopt::Long::complete_cli_arg(
             words=>$words, cword=>$cword, %{$args{args}},
         );
+        use DD; dd { words=>$words, cword=>$cword, %{$args{args}} };
         is_deeply($res, $args{result}, "result") or diag explain($res);
 
         done_testing();
