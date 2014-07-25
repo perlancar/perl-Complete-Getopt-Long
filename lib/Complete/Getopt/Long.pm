@@ -62,7 +62,7 @@ _
             schema      => 'hash*',
         },
         words => {
-            summary     => 'Command line, already broken into words',
+            summary     => 'Command line arguments, like @ARGV',
             description => <<'_',
 
 See function `parse_cmdline` in `Complete::Bash` on how to produce this (if
