@@ -15,6 +15,23 @@ our @EXPORT_OK = qw(
 
 our %SPEC;
 
+sub _default_fallback_completion {
+    my %args = @_;
+    my $word = $args{word} // '';
+    if ($word =~ /\A\$/) {
+        return Complete::Util::complete_env(word=>$word, ci=>$args{ci});
+    } elsif ($word =~ /\A~/) {
+        require Complete::Unix;
+        $word =~ s/\A~//;
+        return [
+            map {"~$_"}
+                @{ Complete::Unix::complete_user(word=>$word, ci=>$args{ci}) }
+        ];
+    } else {
+        return Complete::Util::complete_file(word=>$word);
+    }
+};
+
 # return the key/element if $opt matches exactly a key/element in $opts (which
 # can be an array/hash) OR expands unambiguously to exactly one key/element in
 # $opts, otherwise return undef. e.g. _expand1('--fo', [qw/--foo --bar --baz
@@ -147,16 +164,7 @@ sub complete_cli_arg {
     #say "D:words=", join(", ", @$words), ", cword=$cword";
     my $gospec = $args{getopt_spec} or die "Please specify getopt_spec";
     my $comps = $args{completion};
-    my $fbcomp = $args{fallback_completion} // sub {
-        my %args = @_;
-        my $word = $args{word} // '';
-        if ($word =~ /\A\$/) {
-            return Complete::Util::complete_env(word=>$word, ci=>$args{ci});
-        } else {
-            return Complete::Util::complete_file(word=>$word);
-        }
-        # XXX like bash, if word contains wildcard, like '*.mp3',
-    };
+    my $fbcomp = $args{fallback_completion} // \&_default_fallback_completion;
 
     # parse all options first & supply default completion routine
     my %opts;
