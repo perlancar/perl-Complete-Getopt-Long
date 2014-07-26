@@ -169,7 +169,11 @@ sub complete_cli_arg {
     my @optnames = sort keys %opts;
 
     my %seen_opts;
-    my @expects; # what each word expect (hash of optname,optval,arg,separator)
+
+    # for each word, we try to find out whether it's supposed to complete option
+    # name, or option value, or argument, or separator (or more than one of
+    # them). plus some other information.
+    my @expects;
 
     my $i = -1;
 
@@ -192,13 +196,24 @@ sub complete_cli_arg {
         if ($word =~ /\A-/) {
             my $opt = $word; $opt =~ s/=.*//;
             my $opthash = _expand1($opt, \%opts);
+
             if ($opthash) {
                 # a known argument
                 $opt = $opthash->{name};
                 $expects[$i]{optname} = $opt;
                 $seen_opts{ $opt }++;
+
                 my $min_vals = $opthash->{parsed}{min_vals};
                 my $max_vals = $opthash->{parsed}{max_vals};
+
+                # detect = after --opt
+                if ($i+1 < @$words && $words->[$i+1] eq '=') {
+                    $i++;
+                    $expects[$i] = {separator=>1, optval=>$opt, word=>''};
+                    # force a value due to =
+                    if (!$max_vals) { $min_vals = $max_vals = 1 }
+                }
+
                 for (1 .. $min_vals) {
                     $i++;
                     last WORD if $i >= @$words;
@@ -209,29 +224,32 @@ sub complete_cli_arg {
                     last if $words->[$i+$_] =~ /\A-/; # a new option
                     $expects[$i+$_]{optval} = $opt; # but can also be optname
                 }
-                next WORD;
             } else {
-                # an unknown option, assume it doesn't require argument
+                # an unknown option, assume it doesn't require argument, unless
+                # it's --opt= or --opt=foo
                 $opt = undef;
                 $expects[$i]{optname} = $opt;
-            }
-            # = after --opt
-            if ($i+1 < @$words && $words->[$i+1] eq '=') {
-                $i++;
-                $expects[$i] = {separator => 1};
-                if ($i+1 < @$words) {
+
+                # detect = after --opt
+                if ($i+1 < @$words && $words->[$i+1] eq '=') {
                     $i++;
-                    $expects[$i]{optval} = $opt;
+                    $expects[$i] = {separator=>1, optval=>undef, word=>''};
+                    if ($i+1 < @$words) {
+                        $i++;
+                        $expects[$i]{optval} = $opt;
+                    }
                 }
-                next WORD;
             }
+        } else {
+            $expects[$i]{optname} = '';
+            $expects[$i]{arg} = 1;
         }
     }
 
     #use DD; dd \@expects;
 
-    my $word = $words->[$cword];
     my $exp = $expects[$cword];
+    my $word = $exp->{word} // $words->[$cword];
     my @res;
     if (exists $exp->{optname}) {
         my $opt = $exp->{optname};
@@ -251,8 +269,8 @@ sub complete_cli_arg {
                 }
             }
             # skip options that have been specified and not repeatable
-            next if $seen_opts{$_} && !$repeatable && (!$opt || $opt eq $_);
-            #use DD; dd {seen=>$seen_opts{$_}, repeatable=>$repeatable, opt=>$opt};
+            #use DD; dd {'$_'=>$_, seen=>$seen_opts{$_}, repeatable=>$repeatable, opt=>$opt};
+            next if $seen_opts{$_} && !$repeatable && (!$opt || $opt ne $_);
             push @o, $_;
         }
         #use DD; dd \@o;
@@ -261,8 +279,8 @@ sub complete_cli_arg {
     }
     if (exists($exp->{optval}) && $comps) {
         my $opt = $exp->{optval};
-        my $opthash = $opts{$opt};
-        my $comp = $comps->{$opthash->{ospec}};
+        my $opthash = $opts{$opt} if $opt;
+        my $comp = $comps->{$opthash->{ospec}} if $opthash;
         if (ref($comp) eq 'ARRAY') {
             push @res, @{ Complete::Util::complete_array_elem(
                 array => \@$comp, word => $word) };

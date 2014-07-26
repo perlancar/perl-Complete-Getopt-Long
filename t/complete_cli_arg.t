@@ -35,24 +35,73 @@ subtest basics => sub {
         comp_line0  => 'CMD --str^',
         result      => [qw/--str/],
     );
-    # fudged
-    #test_complete(
-    #    name        => 'option name (4)',
-    #    args        => {getopt_spec=>\%gospec, },
-    #    comp_line0  => 'CMD --str=^',
-    #    result      => [qw/--str/],
-    #);
     test_complete(
         name        => 'option name after a flag option',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD --flag1 ^',
+        result      => [qw/--bool --flag2 --float --int --no-bool
+                           --nobool --str -F -S -f/],
+    );
+    test_complete(
+        name        => 'option name before a flag option',
+        args        => {getopt_spec=>\%gospec, },
+        comp_line0  => 'CMD ^  --flag1',
+        result      => [qw/--bool --flag2 --float --int --no-bool
+                           --nobool --str -F -S -f/],
+    );
+    test_complete(
+        name        => 'option name before a flag option',
+        args        => {getopt_spec=>\%gospec, },
+        comp_line0  => 'CMD ^  --flag1',
+        result      => [qw/--bool --flag2 --float --int --no-bool
+                           --nobool --str -F -S -f/],
+    );
+    my @foo;
+    test_complete(
+        name        => 'repetable option name 1 (assigned to arrayref)',
+        args        => {getopt_spec=>{'foo=s'=>\@foo, 'bar=s'=>sub{}}, },
+        comp_line0  => 'CMD --foo 1 --bar 2 --^',
+        result      => [qw/--foo/],
+    );
+    test_complete(
+        name        => 'repetable option name 2 (desttype @)',
+        args        => {getopt_spec=>{'foo=s@'=>sub{}, 'bar=s'=>sub{}}, },
+        comp_line0  => 'CMD --foo 1 --bar 2 --^',
+        result      => [qw/--foo/],
+    );
+    test_complete(
+        name        => 'repetable option name 3 (desttype %)',
+        args        => {getopt_spec=>{'foo=s%'=>sub{}, 'bar=s'=>sub{}}, },
+        comp_line0  => 'CMD --foo 1 --bar 2 --^',
+        result      => [qw/--foo/],
+    );
+    test_complete(
+        name        => 'repetable option name 4 (incremental)',
+        args        => {getopt_spec=>{'foo+'=>sub{}, 'bar=s'=>sub{}}, },
+        comp_line0  => 'CMD --foo --bar 2 --^',
+        result      => [qw/--foo/],
+    );
+    # even though there's arg completion, /^-/ indicates that user wants to
+    # complete option name
+    test_complete(
+        name        => 'option name + arg completion',
+        args        => {getopt_spec=>\%gospec,
+                        completion=>{''=>sub { [qw/-x/] }}},
+        comp_line0  => 'CMD -^',
         result      => [qw/--bool --flag1 --flag2 --float --int --no-bool
                            --nobool --str -F -S -f/],
     );
+
     test_complete(
         name        => 'option value without completion',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD --str ^',
+        result      => [qw//],
+    );
+    test_complete(
+        name        => 'option value without completion (2)',
+        args        => {getopt_spec=>\%gospec, },
+        comp_line0  => 'CMD --str=^',
         result      => [qw//],
     );
     test_complete(
@@ -106,14 +155,6 @@ subtest basics => sub {
         result      => [qw/--bool --flag1 --flag2 --float --int --no-bool
                            --nobool --str -F -S -f a aa b c/],
     );
-    test_complete(
-        name        => 'option name + arg (2)',
-        args        => {getopt_spec=>\%gospec,
-                        completion=>{''=>sub { [qw/-x/] }}},
-        comp_line0  => 'CMD -^',
-        result      => [qw/--bool --flag1 --flag2 --float --int --no-bool
-                           --nobool --str -F -S -f -x/],
-    );
 
     # XXX test arg with code completion returning hash
     # XXX test option name + arg with code completion returning hash
@@ -149,7 +190,7 @@ sub test_complete {
         my $res = Complete::Getopt::Long::complete_cli_arg(
             words=>$words, cword=>$cword, %{$args{args}},
         );
-        use DD; dd { words=>$words, cword=>$cword, %{$args{args}} };
+        #use DD; dd { words=>$words, cword=>$cword, %{$args{args}} };
         is_deeply($res, $args{result}, "result") or diag explain($res);
 
         done_testing();
