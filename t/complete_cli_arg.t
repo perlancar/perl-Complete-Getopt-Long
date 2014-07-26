@@ -138,11 +138,12 @@ sub test_complete {
         $comp_point >= 0 or
             die "BUG: comp_line0 should contain ^ to indicate where ".
                 "comp_point is";
-        $comp_point =~ s/\^//;
+        $comp_line =~ s/\^//;
 
         require Complete::Bash;
         my ($words, $cword) = @{ Complete::Bash::parse_cmdline(
             $comp_line, $comp_point, '=') };
+        shift @$words; $cword--; # strip command name
 
         require Complete::Getopt::Long;
         my $res = Complete::Getopt::Long::complete_cli_arg(
