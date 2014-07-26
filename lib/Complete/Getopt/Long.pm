@@ -90,10 +90,20 @@ _
 The keys are option spec, like in `getopt_spec`. To refer to arguments, use ''
 (empty string). The values are either arrayrefs (to specify valid values) or a
 coderefs to supply custom completion. Completion code will receive a hash of
-arguments containing these keys: `word` (word to be completed) and is expected
-to return a completion reply in the form of array. The various `complete_*`
-function like those in `Complete::Util` or the other `Complete::*` modules are
-suitable to use here. Example:
+arguments containing these keys:
+
+* `type` (str, what is being completed, either `optname`, `optval`, or `arg`)
+* `word` (str, word to be completed)
+* `opt` (str, option name, e.g. `--str`; undef if we're completing argument)
+* `ospec` (str, Getopt::Long option spec, e.g. `str|S=s`; undef when completing
+  argument)
+* `argpos` (int, argument position, zero-based; undef if completing option)
+* `parent_args`
+* `seen_opts` (hash, all the options seen in `words`)
+
+and is expected to return a completion reply in the form of array. The various
+`complete_*` function like those in `Complete::Util` or the other `Complete::*`
+modules are suitable to use here. Example:
 
     require Complete::Unix;
     complete_cli_arg(
@@ -199,6 +209,7 @@ sub complete_cli_arg {
     my @expects;
 
     my $i = -1;
+    my $argpos = 0;
 
   WORD:
     while (1) {
@@ -212,7 +223,7 @@ sub complete_cli_arg {
             while (1) {
                 $i++;
                 last WORD if $i >= @$words;
-                $expects[$i] = {arg=>1};
+                $expects[$i] = {arg=>1, argpos=>$argpos++};
             }
         }
 
@@ -266,6 +277,7 @@ sub complete_cli_arg {
             }
         } else {
             $expects[$i]{arg} = 1;
+            $expects[$i]{argpos} = $argpos++;
         }
     }
 
@@ -310,7 +322,10 @@ sub complete_cli_arg {
             push @res, @{ Complete::Util::complete_array_elem(
                 array => \@$comp, word => $word) };
         } elsif (ref($comp) eq 'CODE') {
-            my $compres = $comp->(word=>$word);
+            my $compres = $comp->(
+                type=>'optval', word=>$word, opt=>$opt,
+                ospec=>$opthash->{ospec}, argpos=>undef,
+                parent_args=>\%args, seen_opts=>\%seen_opts);
             if (ref($compres) eq 'ARRAY') {
                 push @res, @$compres;
             } elsif (ref($compres) eq 'HASH') {
@@ -325,7 +340,10 @@ sub complete_cli_arg {
         if (ref($comp) eq 'ARRAY') {
             push @res, @$comp;
         } elsif (ref($comp) eq 'CODE') {
-            my $compres = $comp->(word=>$word);
+            my $compres = $comp->(
+                type=>'arg', word=>$word, opt=>undef,
+                ospec=>undef, argpos=>$exp->{argpos},
+                parent_args=>\%args, seen_opts=>\%seen_opts);
             if (ref($compres) eq 'ARRAY') {
                 push @res, @$compres;
             } elsif (ref($compres) eq 'HASH') {
