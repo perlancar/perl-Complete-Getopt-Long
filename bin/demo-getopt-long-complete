@@ -1,5 +1,8 @@
 #!/usr/bin/env perl
 
+# DATE
+# VERSION
+
 use 5.010;
 use strict;
 use warnings;
@@ -27,6 +30,11 @@ my $res = GetOptionsWithCompletion(
     'int-comp-array=i' => sub{},
     'str-comp-sub=s' => sub{},
 
+    'version|v' => sub{
+        no warnings;
+        say "test-getopt-long-complete version $main::VERSION";
+        exit 0;
+    },
     'help|h|?' => sub {
         print <<_;
 Usage:
@@ -49,3 +57,20 @@ _
 );
 
 #say $res ? "Getopt failed" : "Getopt succeeded";
+# ABSTRACT: Script to demonstrate Complete::Getopt::Long
+# PODNAME: demo-getopt-long-complete
+
+=head1 SYNOPSIS
+
+Activate completion using (can be put in your bash startup file):
+
+ % complete -C demo-getopt-long-complete demo-getopt-long-complete
+
+Test completion:
+
+ % demo-getopt-long-complete <tab>
+ % demo-getopt-long-complete -<tab>
+ % demo-getopt-long-complete --int 1 -<tab>
+ # and so on
+
+=head2
