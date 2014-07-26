@@ -30,6 +30,18 @@ sub _expand1 {
     return @candidates == 1 ? $candidates[0] : undef;
 }
 
+# mark an option (and all its aliases) as seen
+sub _mark_seen {
+    my ($seen_opts, $opt, $opts) = @_;
+    my $opthash = $opts->{$opt};
+    return unless $opthash;
+    my $ospec = $opthash->{ospec};
+    for (keys %$opts) {
+        my $v = $opts->{$_};
+        $seen_opts->{$_}++ if $v->{ospec} eq $ospec;
+    }
+}
+
 $SPEC{complete_cli_arg} = {
     v => 1.1,
     summary => 'Complete command-line argument using '.
@@ -201,10 +213,11 @@ sub complete_cli_arg {
                 # a known argument
                 $opt = $opthash->{name};
                 $expects[$i]{optname} = $opt;
-                $seen_opts{ $opt }++;
+                _mark_seen(\%seen_opts, $opt, \%opts);
 
                 my $min_vals = $opthash->{parsed}{min_vals};
                 my $max_vals = $opthash->{parsed}{max_vals};
+                #say "D:min_vals=$min_vals, max_vals=$max_vals";
 
                 # detect = after --opt
                 if ($i+1 < @$words && $words->[$i+1] eq '=') {
@@ -247,6 +260,7 @@ sub complete_cli_arg {
     }
 
     #use DD; dd \@expects;
+    #use DD; dd \%seen_opts;
 
     my $exp = $expects[$cword];
     my $word = $exp->{word} // $words->[$cword];

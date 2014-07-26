@@ -36,25 +36,31 @@ subtest basics => sub {
         result      => [qw/--str/],
     );
     test_complete(
-        name        => 'option name after a flag option',
+        name        => 'option name with mentioned non-repeatable option',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD --flag1 ^',
         result      => [qw/--bool --flag2 --float --int --no-bool
                            --nobool --str -F -S -f/],
     );
     test_complete(
-        name        => 'option name before a flag option',
+        name        => 'option name with mentioned non-repeatable option 2',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD ^  --flag1',
         result      => [qw/--bool --flag2 --float --int --no-bool
                            --nobool --str -F -S -f/],
     );
     test_complete(
-        name        => 'option name before a flag option',
+        name        => 'option name with mentioned non-repeatable option 3 (alias)',
         args        => {getopt_spec=>\%gospec, },
-        comp_line0  => 'CMD ^  --flag1',
-        result      => [qw/--bool --flag2 --float --int --no-bool
-                           --nobool --str -F -S -f/],
+        comp_line0  => 'CMD --flag2 -^', # means -f is also mentioned
+        result      => [qw/--bool --flag1 --float --int --no-bool
+                           --nobool --str -F -S/],
+    );
+    test_complete(
+        name        => 'option name with mentioned non-repeatable option 3 (alias)',
+        args        => {getopt_spec=>\%gospec, },
+        comp_line0  => 'CMD -f --f^', # means --flag1 is also mentioned
+        result      => [qw/--flag1 --float/],
     );
     my @foo;
     test_complete(
