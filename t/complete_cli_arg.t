@@ -57,10 +57,16 @@ subtest basics => sub {
                            --nobool --str -F -S/],
     );
     test_complete(
-        name        => 'option name with mentioned non-repeatable option 3 (alias)',
+        name        => 'option name with mentioned non-repeatable option 4 (alias)',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD -f --f^', # means --flag1 is also mentioned
         result      => [qw/--flag1 --float/],
+    );
+    test_complete(
+        name        => 'option name with mentioned non-repeatable option 5',
+        args        => {getopt_spec=>{'--foo'=>sub{}, '--foot'=>sub{}}, },
+        comp_line0  => 'CMD --foo ^',
+        result      => [qw/--foot/],
     );
     my @foo;
     test_complete(
