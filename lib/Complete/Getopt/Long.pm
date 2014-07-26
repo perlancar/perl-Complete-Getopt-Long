@@ -19,7 +19,9 @@ sub _default_completion {
     my %args = @_;
     my $word = $args{word} // '';
     if ($word =~ /\A\$/) {
-        return Complete::Util::complete_env(word=>$word, ci=>$args{ci});
+        return {completion=>
+                    Complete::Util::complete_env(word=>$word, ci=>$args{ci}),
+                escmode=>'shellvar'};
     }
     if ($word =~ /\A~/) {
         require Complete::Unix;
