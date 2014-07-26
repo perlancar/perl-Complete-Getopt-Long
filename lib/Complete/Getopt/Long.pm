@@ -122,29 +122,6 @@ the result of this function for bash.
 
 _
     },
-    examples => [
-        {
-            args => {
-                getopt_spec => {'help|h'=>sub{}, 'arg1|a=s'=>sub{},
-                                'arg2|b=s'=>sub{}},
-                words       => [qw//],
-                cword       => 0,
-            },
-            result  => ['--arg1', '--arg2', '--help', '-a', '-b', '-h'],
-        },
-        # not yet implemented
-        #{
-        #    args => {
-        #        getopt_spec => {'help|h'=>sub{}, 'arg1|a=s'=>sub{},
-        #                        'arg2|b=s'=>sub{}},
-        #        words       => [qw/--arg1 one --a/],
-        #        cword       => 2,
-        #    },
-        #    result  => ['--arg2'],
-        #    summary => '--arg1 by default is no longer completed, unless '.
-        #        'it assigns to array or has a "+" specifier',
-        #},
-    ],
 };
 sub complete_cli_arg {
     require Complete::Util;
