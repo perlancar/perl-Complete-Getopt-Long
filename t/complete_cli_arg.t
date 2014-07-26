@@ -200,7 +200,10 @@ sub test_complete {
 
         require Complete::Getopt::Long;
         my $res = Complete::Getopt::Long::complete_cli_arg(
-            words=>$words, cword=>$cword, %{$args{args}},
+            words=>$words, cword=>$cword,
+            # we don't want to test default fallback completion yet
+            fallback_completion=>sub{[]},
+            %{$args{args}},
         );
         #use DD; dd { words=>$words, cword=>$cword, %{$args{args}} };
         is_deeply($res, $args{result}, "result") or diag explain($res);
