@@ -20,16 +20,20 @@ sub _default_fallback_completion {
     my $word = $args{word} // '';
     if ($word =~ /\A\$/) {
         return Complete::Util::complete_env(word=>$word, ci=>$args{ci});
-    } elsif ($word =~ /\A~/) {
+    }
+    if ($word =~ /\A~/) {
         require Complete::Unix;
         $word =~ s/\A~//;
         return [
             map {"~$_"}
                 @{ Complete::Unix::complete_user(word=>$word, ci=>$args{ci}) }
         ];
-    } else {
-        return Complete::Util::complete_file(word=>$word);
     }
+    require String::Wildcard::Bash;
+    if (String::Wildcard::Bash::contains_wildcard($word)) {
+        return {completion=>[glob($word)], path_sep=>'/'};
+    }
+    return {completion=>Complete::Util::complete_file(word=>$word), path_sep=>'/'};
 };
 
 # return the key/element if $opt matches exactly a key/element in $opts (which
@@ -41,7 +45,7 @@ sub _expand1 {
     my ($opt, $opts) = @_;
     my @candidates;
     my $is_hash = ref($opts) eq 'HASH';
-    for ($is_hash ? (keys %$opts) : @$opts) {
+    for ($is_hash ? (sort {length($a)<=>length($b)} keys %$opts) : @$opts) {
         next unless index($_, $opt) == 0;
         push @candidates, $is_hash ? $opts->{$_} : $_;
         last if $opt eq $_;
