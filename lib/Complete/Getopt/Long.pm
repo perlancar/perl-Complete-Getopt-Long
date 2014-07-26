@@ -253,7 +253,6 @@ sub complete_cli_arg {
                 }
             }
         } else {
-            $expects[$i]{optname} = '';
             $expects[$i]{arg} = 1;
         }
     }
