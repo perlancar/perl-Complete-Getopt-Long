@@ -98,7 +98,7 @@ Completion code will receive a hash of arguments containing these keys:
 * `ospec` (str, Getopt::Long option spec, e.g. `str|S=s`; undef when completing
   argument)
 * `argpos` (int, argument position, zero-based; undef if completing option)
-* `parent_args`
+* `extras`
 * `seen_opts` (hash, all the options seen in `words`)
 
 and is expected to return a completion reply in the form of array. The various
@@ -155,6 +155,10 @@ _
             schema      => 'int*',
             req         => 1,
         },
+        extras => {
+            summary => 'To pass extra arguments to completion routines',
+            schema  => 'hash',
+        },
     },
     result_naked => 1,
     result => {
@@ -180,6 +184,7 @@ sub complete_cli_arg {
     my $gospec = $args{getopt_spec} or die "Please specify getopt_spec";
     my $comp0 = $args{completion};
     my $comp = $comp0 // &_default_completion;
+    my $extras = $args{extras};
 
     # before v0.06, completion is a hash, we'll support this for a while
     if (ref($comp) eq 'HASH') {
@@ -339,7 +344,7 @@ sub complete_cli_arg {
         my $opthash = $opts{$opt} if $opt;
         my %compargs = (
             type=>'optval', word=>$word, opt=>$opt, ospec=>$opthash->{ospec},
-            argpos=>undef, parent_args=>\%args, seen_opts=>\%seen_opts,
+            argpos=>undef, extras=>$extras, seen_opts=>\%seen_opts,
         );
         my $compres = $comp->(%compargs);
         if (!defined $compres) {
@@ -356,7 +361,7 @@ sub complete_cli_arg {
     if (exists($exp->{arg})) {
         my %compargs = (
             type=>'arg', word=>$word, opt=>undef, ospec=>undef,
-            argpos=>$exp->{argpos}, parent_args=>\%args, seen_opts=>\%seen_opts,
+            argpos=>$exp->{argpos}, extras=>$extras, seen_opts=>\%seen_opts,
         );
         my $compres = $comp->(%compargs);
         if (!defined $compres) {
