@@ -178,12 +178,12 @@ sub complete_cli_arg {
 
     my %args = @_;
 
-    my $words  = $args{words} or die "Please specify words";
+    $args{words} or die "Please specify words";
+    my @words = @{ $args{words} };
     defined(my $cword = $args{cword}) or die "Please specify cword";
-    #say "D:words=", join(", ", @$words), ", cword=$cword";
     my $gospec = $args{getopt_spec} or die "Please specify getopt_spec";
     my $comp0 = $args{completion};
-    my $comp = $comp0 // &_default_completion;
+    my $comp = $comp0 // \&_default_completion;
     my $extras = $args{extras};
 
     # before v0.06, completion is a hash, we'll support this for a while
@@ -239,26 +239,69 @@ sub complete_cli_arg {
 
   WORD:
     while (1) {
-        $i++;
-        last WORD if $i >= @$words;
-        my $word = $words->[$i];
-        #say "D:i=$i, word=$word, ~~\@\$words=",~~@$words;
+        last WORD if ++$i >= @words;
+        my $word = $words[$i];
+        #say "D:i=$i, word=$word, ~~@words=",~~@words;
 
         if ($word eq '--' && $i != $cword) {
             $expects[$i] = {separator=>1};
             while (1) {
                 $i++;
-                last WORD if $i >= @$words;
+                last WORD if $i >= @words;
                 $expects[$i] = {arg=>1, argpos=>$argpos++};
             }
         }
 
         if ($word =~ /\A-/) {
-            my $opt = $word; $opt =~ s/=.*//;
+
+            # split bundled short options
+          SPLIT:
+            {
+                my $shorts = $word;
+                if ($shorts =~ s/\A-([^-])(.*)/$2/) {
+                    my $opt = "-$1";
+                    my $opthash = $opts{$opt};
+                    if (!$opthash || $opthash->{parsed}{max_vals}) {
+                        last SPLIT;
+                    }
+                    $words[$i] = $word = "-$1";
+                    $expects[$i]{prefix} = $word;
+                    $expects[$i]{word} = '';
+                    $expects[$i]{short_only} = 1;
+                    my $len_before_split = @words;
+                    my $j = $i+1;
+                  SHORTOPT:
+                    while ($shorts =~ s/(.)//) {
+                        $opt = "-$1";
+                        $opthash = $opts{$opt};
+                        if (!$opthash || $opthash->{parsed}{max_vals}) {
+                            # end after unknown short option or short option
+                            # expects value, and don't complete this optname
+                            # later
+                            $expects[$i]{do_complete_optname} = 0;
+                            if (length $shorts) {
+                                splice @words, $j, 0, $opt, '=', $shorts;
+                                $j += 3;
+                            } else {
+                                splice @words, $j, 0, $opt;
+                                $j++;
+                            }
+                            last SHORTOPT;
+                        } else {
+                            splice @words, $j, 0, $opt;
+                            $j++;
+                            # continue splitting
+                        }
+                    }
+                    $cword += @words-$len_before_split if $cword > $i;
+                    #say "D:words increases ", @words-$len_before_split;
+                }
+            }
+
+            my $opt = $word;
             my $opthash = _expand1($opt, \%opts);
 
             if ($opthash) {
-                # a known argument
                 $opt = $opthash->{name};
                 $expects[$i]{optname} = $opt;
                 my $nth = $seen_opts{$opt} // 0;
@@ -270,7 +313,7 @@ sub complete_cli_arg {
                 #say "D:min_vals=$min_vals, max_vals=$max_vals";
 
                 # detect = after --opt
-                if ($i+1 < @$words && $words->[$i+1] eq '=') {
+                if ($i+1 < @words && $words[$i+1] eq '=') {
                     $i++;
                     $expects[$i] = {separator=>1, optval=>$opt, word=>'', nth=>$nth};
                     # force a value due to =
@@ -279,13 +322,13 @@ sub complete_cli_arg {
 
                 for (1 .. $min_vals) {
                     $i++;
-                    last WORD if $i >= @$words;
+                    last WORD if $i >= @words;
                     $expects[$i]{optval} = $opt;
                     $expects[$i]{nth} = $nth;
                 }
                 for (1 .. $max_vals-$min_vals) {
-                    last if $i+$_ >= @$words;
-                    last if $words->[$i+$_] =~ /\A-/; # a new option
+                    last if $i+$_ >= @words;
+                    last if $words[$i+$_] =~ /\A-/; # a new option
                     $expects[$i+$_]{optval} = $opt; # but can also be optname
                     $expects[$i]{nth} = $nth;
                 }
@@ -296,10 +339,10 @@ sub complete_cli_arg {
                 $expects[$i]{optname} = $opt;
 
                 # detect = after --opt
-                if ($i+1 < @$words && $words->[$i+1] eq '=') {
+                if ($i+1 < @words && $words[$i+1] eq '=') {
                     $i++;
                     $expects[$i] = {separator=>1, optval=>undef, word=>''};
-                    if ($i+1 < @$words) {
+                    if ($i+1 < @words) {
                         $i++;
                         $expects[$i]{optval} = $opt;
                     }
@@ -312,19 +355,26 @@ sub complete_cli_arg {
         }
     }
 
-    #use DD; dd \@expects;
-    #use DD; dd \%seen_opts;
+    #use DD; print "D:words: "; dd \@words;
+    #say "D:cword: $cword";
+    #use DD; print "D:expects: "; dd \@expects;
+    #use DD; print "D:seen_opts: "; dd \%seen_opts;
 
     my $exp = $expects[$cword];
-    my $word = $exp->{word} // $words->[$cword];
+    my $word = $exp->{word} // $words[$cword];
     my @res;
-    if (exists $exp->{optname}) {
+
+    # complete option names
+    {
+        last unless exists $exp->{optname};
+        last if defined($exp->{do_complete_optname}) &&
+            !$exp->{do_complete_optname};
         my $opt = $exp->{optname};
-        # complete option names
         my @o;
         for (@optnames) {
             #say "D:$_";
             my $repeatable = 0;
+            next if $exp->{short_only} && /\A--/;
             if ($seen_opts{$_}) {
                 my $opthash = $opts{$_};
                 my $ospecval = $gospec->{$opthash->{ospec}};
@@ -337,14 +387,27 @@ sub complete_cli_arg {
             }
             # skip options that have been specified and not repeatable
             #use DD; dd {'$_'=>$_, seen=>$seen_opts{$_}, repeatable=>$repeatable, opt=>$opt};
-            next if $seen_opts{$_} && !$repeatable && (!$opt || $opt ne $_);
-            push @o, $_;
+            next if $seen_opts{$_} && !$repeatable && (
+                # long option has been specified
+                (!$opt || $opt ne $_) ||
+                     # short option (in a bundle) has been specified
+                    (defined($exp->{prefix}) &&
+                         index($exp->{prefix}, substr($opt, 1, 1)) >= 0));
+            if (defined $exp->{prefix}) {
+                my $o = $_; $o =~ s/\A-//;
+                push @o, "$exp->{prefix}$o";
+            } else {
+                push @o, $_;
+            }
         }
         #use DD; dd \@o;
         push @res, @{ Complete::Util::complete_array_elem(
             array => \@o, word => $word) };
     }
-    if (exists($exp->{optval})) {
+
+    # complete option value
+    {
+        last unless exists($exp->{optval});
         my $opt = $exp->{optval};
         my $opthash = $opts{$opt} if $opt;
         my %compargs = (
@@ -364,7 +427,9 @@ sub complete_cli_arg {
         }
     }
 
-    if (exists($exp->{arg})) {
+    # complete argument
+    {
+        last unless exists($exp->{arg});
         my %compargs = (
             type=>'arg', word=>$word, opt=>undef, ospec=>undef,
             argpos=>$exp->{argpos}, extras=>$extras, seen_opts=>\%seen_opts,
