@@ -261,7 +261,8 @@ sub complete_cli_arg {
                 # a known argument
                 $opt = $opthash->{name};
                 $expects[$i]{optname} = $opt;
-                $expects[$i]{nth} = $seen_opts{$opt} // 0;
+                my $nth = $seen_opts{$opt} // 0;
+                $expects[$i]{nth} = $nth;
                 _mark_seen(\%seen_opts, $opt, \%opts);
 
                 my $min_vals = $opthash->{parsed}{min_vals};
@@ -271,7 +272,7 @@ sub complete_cli_arg {
                 # detect = after --opt
                 if ($i+1 < @$words && $words->[$i+1] eq '=') {
                     $i++;
-                    $expects[$i] = {separator=>1, optval=>$opt, word=>''};
+                    $expects[$i] = {separator=>1, optval=>$opt, word=>'', nth=>$nth};
                     # force a value due to =
                     if (!$max_vals) { $min_vals = $max_vals = 1 }
                 }
@@ -280,11 +281,13 @@ sub complete_cli_arg {
                     $i++;
                     last WORD if $i >= @$words;
                     $expects[$i]{optval} = $opt;
+                    $expects[$i]{nth} = $nth;
                 }
                 for (1 .. $max_vals-$min_vals) {
                     last if $i+$_ >= @$words;
                     last if $words->[$i+$_] =~ /\A-/; # a new option
                     $expects[$i+$_]{optval} = $opt; # but can also be optname
+                    $expects[$i]{nth} = $nth;
                 }
             } else {
                 # an unknown option, assume it doesn't require argument, unless
@@ -345,7 +348,7 @@ sub complete_cli_arg {
         my $opthash = $opts{$opt} if $opt;
         my %compargs = (
             type=>'optval', word=>$word, opt=>$opt, ospec=>$opthash->{ospec},
-            argpos=>undef, extras=>$extras, nth=>$opthash->{nth},
+            argpos=>undef, extras=>$extras, nth=>$exp->{nth},
             seen_opts=>\%seen_opts,
         );
         my $compres = $comp->(%compargs);
