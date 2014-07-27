@@ -131,7 +131,6 @@ Example:
     );
 
 _
-            schema      => 'hash*',
         },
         words => {
             summary     => 'Command line arguments, like @ARGV',
