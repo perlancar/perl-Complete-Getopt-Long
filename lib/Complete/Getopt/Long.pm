@@ -74,8 +74,8 @@ $SPEC{complete_cli_arg} = {
     description => <<'_',
 
 This routine can complete option names, where the option names are retrieved
-from `Getopt::Long` specification. If you provide completion hints in `hints`,
-you can also complete option _values_ and _arguments_.
+from `Getopt::Long` specification. If you provide completion routine in
+`completion`, you can also complete _option values_ and _arguments_.
 
 _
     args => {
