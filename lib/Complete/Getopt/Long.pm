@@ -261,6 +261,7 @@ sub complete_cli_arg {
                 # a known argument
                 $opt = $opthash->{name};
                 $expects[$i]{optname} = $opt;
+                $expects[$i]{nth} = $seen_opts{$opt} // 0;
                 _mark_seen(\%seen_opts, $opt, \%opts);
 
                 my $min_vals = $opthash->{parsed}{min_vals};
@@ -344,7 +345,8 @@ sub complete_cli_arg {
         my $opthash = $opts{$opt} if $opt;
         my %compargs = (
             type=>'optval', word=>$word, opt=>$opt, ospec=>$opthash->{ospec},
-            argpos=>undef, extras=>$extras, seen_opts=>\%seen_opts,
+            argpos=>undef, extras=>$extras, nth=>$opthash->{nth},
+            seen_opts=>\%seen_opts,
         );
         my $compres = $comp->(%compargs);
         if (!defined $compres) {
