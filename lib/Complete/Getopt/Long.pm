@@ -403,6 +403,8 @@ sub complete_cli_arg {
         #use DD; dd \@o;
         push @res, @{ Complete::Util::complete_array_elem(
             array => \@o, word => $word) };
+        return {completion=>\@res, escmode=>'option'}
+            if !exists($exp->{optval}) && !exists($exp->{arg});
     }
 
     # complete option value
