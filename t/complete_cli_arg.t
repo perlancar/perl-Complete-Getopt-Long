@@ -174,6 +174,9 @@ subtest basics => sub {
     # XXX test optional value
 };
 
+# XXX test default fallback completion: file
+# XXX test default fallback completion: env
+
 DONE_TESTING:
 done_testing;
 
