@@ -413,7 +413,8 @@ sub complete_cli_arg {
         my $opt = $exp->{optval};
         my $opthash = $opts{$opt} if $opt;
         my %compargs = (
-            type=>'optval', word=>$word, opt=>$opt, ospec=>$opthash->{ospec},
+            type=>'optval', words=>$args{words}, cword=>$args{cword},
+            word=>$word, opt=>$opt, ospec=>$opthash->{ospec},
             argpos=>undef, extras=>$extras, nth=>$exp->{nth},
             seen_opts=>\%seen_opts,
         );
@@ -433,7 +434,8 @@ sub complete_cli_arg {
     {
         last unless exists($exp->{arg});
         my %compargs = (
-            type=>'arg', word=>$word, opt=>undef, ospec=>undef,
+            type=>'arg', words=>$args{words}, cword=>$args{cword},
+            word=>$word, opt=>undef, ospec=>undef,
             argpos=>$exp->{argpos}, extras=>$extras, seen_opts=>\%seen_opts,
         );
         my $compres = $comp->(%compargs);
