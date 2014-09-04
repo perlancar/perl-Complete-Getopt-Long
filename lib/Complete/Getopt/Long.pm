@@ -24,7 +24,8 @@ sub _default_completion {
                 escmode=>'shellvar'};
     }
     if ($word =~ /\A~/) {
-        require Complete::Unix;
+        eval { require Complete::Unix };
+        return [] if $@;
         $word =~ s/\A~//;
         return [
             map {"~$_"}
