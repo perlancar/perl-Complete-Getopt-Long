@@ -215,7 +215,8 @@ sub complete_cli_arg {
         $res->{min_vals} //= $res->{type} ? 1 : 0;
         $res->{max_vals} //= $res->{type} || $res->{opttype} ? 1:0;
         for my $o0 (@{ $res->{opts} }) {
-            my @o = $res->{is_neg} ? ($o0, "no$o0", "no-$o0") : ($o0);
+            my @o = $res->{is_neg} && length($o0) > 1 ?
+                ($o0, "no$o0", "no-$o0") : ($o0);
             for my $o (@o) {
                 my $k = length($o) > 1 ? "--$o" : "-$o";
                 $opts{$k} = {
