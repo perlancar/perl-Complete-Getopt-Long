@@ -78,6 +78,11 @@ This routine can complete option names, where the option names are retrieved
 from `Getopt::Long` specification. If you provide completion routine in
 `completion`, you can also complete _option values_ and _arguments_.
 
+Note that this routine does not use `Getopt::Long` (it does its own parsing) and
+currently is not affected by Getopt::Long's configuration. Its behavior mimics
+Getopt::Long under these configuration: `bundling`, `no_ignore_case`. Which I
+think is the sensible default.
+
 _
     args => {
         getopt_spec => {
