@@ -81,7 +81,9 @@ from `Getopt::Long` specification. If you provide completion routine in
 Note that this routine does not use `Getopt::Long` (it does its own parsing) and
 currently is not affected by Getopt::Long's configuration. Its behavior mimics
 Getopt::Long under these configuration: `bundling`, `no_ignore_case`. Which I
-think is the sensible default.
+think is the sensible default. This routine also does not currently support
+`auto_help` and `auto_version`, so you'll need to add those options specifically
+if you want to recognize `--help/-?` and `--version`, respectively.
 
 _
     args => {
