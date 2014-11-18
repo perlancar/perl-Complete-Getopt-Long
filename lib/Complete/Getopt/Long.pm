@@ -34,7 +34,7 @@ sub _default_completion {
     }
     require String::Wildcard::Bash;
     if (String::Wildcard::Bash::contains_wildcard($word)) {
-        return {completion=>[glob($word)], path_sep=>'/'};
+        return {completion=>[glob("$word*")], path_sep=>'/'};
     }
     return {completion=>Complete::Util::complete_file(word=>$word), path_sep=>'/'};
 };
