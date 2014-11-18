@@ -18,26 +18,75 @@ our %SPEC;
 sub _default_completion {
     my %args = @_;
     my $word = $args{word} // '';
+
+    # try completing '$...' with shell variables
     if ($word =~ /\A\$/) {
-        return {completion=>
-                    Complete::Util::complete_env(word=>$word, ci=>$args{ci}),
-                escmode=>'shellvar'};
+        require Complete::Util;
+        {
+            my $compres = Complete::Util::complete_env(
+                word=>$word, ci=>$args{ci});
+            last unless @$compres;
+            return {completion=>$compres, escmode=>'shellvar'};
+        }
+        # if empty, fallback to searching file
     }
-    if ($word =~ /\A~/) {
-        eval { require Complete::Unix };
-        return [] if $@;
-        $word =~ s/\A~//;
-        return [
-            map {"~$_"}
-                @{ Complete::Unix::complete_user(word=>$word, ci=>$args{ci}) }
-        ];
+
+    # try completing '~foo' with user dir (appending / if user's home exists)
+    if ($word =~ m!\A~([^/]*)\z!) {
+        {
+            eval { require Unix::Passwd::File };
+            last if $@;
+            my $res = Unix::Passwd::File::list_users(detail=>1);
+            last unless $res->[0] == 200;
+            my $compres = Complete::Util::complete_array(
+                array=>[map {"~" . $_->{user} . ((-d $_->{home}) ? "/":"")}
+                            @{ $res->[2] }],
+                word=>$word, ci=>$args{ci},
+            );
+            last unless @$compres;
+            return {completion=>$compres, path_sep=>'/'};
+        }
+        # if empty, fallback to searching file
     }
+
+    # try completion '~foo/blah' as if completing file, but do not expand ~foo
+    if ($word =~ m!\A(~[^/]*)/!) {
+        {
+            my $tilde = $1;
+            my $dir = [glob($tilde)]; # glob will expand ~foo to /home/foo
+            last unless @$dir;
+            # XXX unlike in bash, ~foo/<tab> will not match dotfiles if we use
+            # '*'
+            my $compres = [glob("$word*")];
+            last unless @$compres;
+            # unexpand ~foo
+            for (@$compres) {
+                $_ .= "/" if (-d $_);
+                s/\A\Q$dir->[0]\E/$tilde/;
+            }
+            return {completion=>$compres, path_sep=>'/'};
+        }
+        # if empty, fallback to searching file
+    }
+
+    # try completing something that contains wildcard with glob. for
+    # convenience, we add '*' at the end so that when user type [AB] it is
+    # treated like [AB]*.
     require String::Wildcard::Bash;
     if (String::Wildcard::Bash::contains_wildcard($word)) {
-        return {completion=>[glob("$word*")], path_sep=>'/'};
+        {
+            my $compres = [glob("$word*")];
+            last unless @$compres;
+            for (@$compres) {
+                $_ .= "/" if (-d $_);
+            }
+            return {completion=>$compres, path_sep=>'/'};
+        }
+        # if empty, fallback to searching file
     }
-    return {completion=>Complete::Util::complete_file(word=>$word), path_sep=>'/'};
-};
+    return {completion=>Complete::Util::complete_file(word=>$word),
+            path_sep=>'/'};
+}
 
 # return the key/element if $opt matches exactly a key/element in $opts (which
 # can be an array/hash) OR expands unambiguously to exactly one key/element in
