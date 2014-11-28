@@ -26,7 +26,7 @@ sub _default_completion {
             my $compres = Complete::Util::complete_env(
                 word=>$word, ci=>$args{ci});
             last unless @$compres;
-            return {completion=>$compres, escmode=>'shellvar'};
+            return {words=>$compres, escmode=>'shellvar'};
         }
         # if empty, fallback to searching file
     }
@@ -44,7 +44,7 @@ sub _default_completion {
                 word=>$word, ci=>$args{ci},
             );
             last unless @$compres;
-            return {completion=>$compres, path_sep=>'/'};
+            return {words=>$compres, path_sep=>'/'};
         }
         # if empty, fallback to searching file
     }
@@ -64,7 +64,7 @@ sub _default_completion {
                 $_ .= "/" if (-d $_);
                 s/\A\Q$dir->[0]\E/$tilde/;
             }
-            return {completion=>$compres, path_sep=>'/'};
+            return {words=>$compres, path_sep=>'/'};
         }
         # if empty, fallback to searching file
     }
@@ -80,11 +80,11 @@ sub _default_completion {
             for (@$compres) {
                 $_ .= "/" if (-d $_);
             }
-            return {completion=>$compres, path_sep=>'/'};
+            return {words=>$compres, path_sep=>'/'};
         }
         # if empty, fallback to searching file
     }
-    return {completion=>Complete::Util::complete_file(word=>$word),
+    return {words=>Complete::Util::complete_file(word=>$word),
             path_sep=>'/'};
 }
 
@@ -461,7 +461,7 @@ sub complete_cli_arg {
         #use DD; dd \@o;
         push @res, @{ Complete::Util::complete_array_elem(
             array => \@o, word => $word) };
-        return {completion=>\@res, escmode=>'option'}
+        return {words=>\@res, escmode=>'option'}
             if !exists($exp->{optval}) && !exists($exp->{arg});
     }
 
@@ -484,7 +484,7 @@ sub complete_cli_arg {
             push @res, @$compres;
         } elsif (ref($compres) eq 'HASH') {
             return $compres unless @res;
-            push @res, @{ $compres->{completion} // [] };
+            push @res, @{ $compres->{words} // [] };
         }
     }
 
@@ -504,7 +504,7 @@ sub complete_cli_arg {
             push @res, @$compres;
         } elsif (ref($compres) eq 'HASH') {
             return $compres unless @res;
-            push @res, @{ $compres->{completion} // [] };
+            push @res, @{ $compres->{words} // [] };
         }
     }
 
