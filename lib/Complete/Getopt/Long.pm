@@ -6,6 +6,7 @@ package Complete::Getopt::Long;
 use 5.010001;
 use strict;
 use warnings;
+use Log::Any '$log';
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -19,12 +20,15 @@ sub _default_completion {
     my %args = @_;
     my $word = $args{word} // '';
 
+    $log->tracef('entering default completion');
+
     # try completing '$...' with shell variables
     if ($word =~ /\A\$/) {
+        $log->tracef('completing shell variable');
         require Complete::Util;
         {
             my $compres = Complete::Util::complete_env(
-                word=>$word, ci=>$args{ci});
+                word=>$word, ci=>1);
             last unless @$compres;
             return {words=>$compres, escmode=>'shellvar'};
         }
@@ -33,6 +37,7 @@ sub _default_completion {
 
     # try completing '~foo' with user dir (appending / if user's home exists)
     if ($word =~ m!\A~([^/]*)\z!) {
+        $log->tracef("completing userdir");
         {
             eval { require Unix::Passwd::File };
             last if $@;
@@ -41,7 +46,7 @@ sub _default_completion {
             my $compres = Complete::Util::complete_array(
                 array=>[map {"~" . $_->{user} . ((-d $_->{home}) ? "/":"")}
                             @{ $res->[2] }],
-                word=>$word, ci=>$args{ci},
+                word=>$word, ci=>1,
             );
             last unless @$compres;
             return {words=>$compres, path_sep=>'/'};
@@ -53,7 +58,8 @@ sub _default_completion {
     # expand ~foo (this is supported by complete_file(), so we just give it off
     # to the routine)
     if ($word =~ m!\A(~[^/]*)/!) {
-        return {words=>Complete::Util::complete_file(word=>$word),
+        $log->tracef("completing file");
+        return {words=>Complete::Util::complete_file(word=>$word, ci=>1),
                 path_sep=>'/'};
     }
 
@@ -62,6 +68,7 @@ sub _default_completion {
     # treated like [AB]*.
     require String::Wildcard::Bash;
     if (String::Wildcard::Bash::contains_wildcard($word)) {
+        $log->tracef("completing with wildcard glob");
         {
             my $compres = [glob("$word*")];
             last unless @$compres;
@@ -72,7 +79,8 @@ sub _default_completion {
         }
         # if empty, fallback to searching file
     }
-    return {words=>Complete::Util::complete_file(word=>$word),
+    $log->tracef("completing with file");
+    return {words=>Complete::Util::complete_file(word=>$word, ci=>1),
             path_sep=>'/'};
 }
 
