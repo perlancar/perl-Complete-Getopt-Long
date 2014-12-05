@@ -50,23 +50,11 @@ sub _default_completion {
     }
 
     # try completion '~foo/blah' as if completing file, but do not expand ~foo
+    # (this is supported by complete_file(), so we just give it off to the
+    # routine)
     if ($word =~ m!\A(~[^/]*)/!) {
-        {
-            my $tilde = $1;
-            my $dir = [glob($tilde)]; # glob will expand ~foo to /home/foo
-            last unless @$dir;
-            # XXX unlike in bash, ~foo/<tab> will not match dotfiles if we use
-            # '*'
-            my $compres = [glob("$word*")];
-            last unless @$compres;
-            # unexpand ~foo
-            for (@$compres) {
-                $_ .= "/" if (-d $_);
-                s/\A\Q$dir->[0]\E/$tilde/;
-            }
-            return {words=>$compres, path_sep=>'/'};
-        }
-        # if empty, fallback to searching file
+        return {words=>Complete::Util::complete_file(word=>$word),
+                path_sep=>'/'};
     }
 
     # try completing something that contains wildcard with glob. for
