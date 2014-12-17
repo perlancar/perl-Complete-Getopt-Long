@@ -87,8 +87,10 @@ sub _default_completion {
 # return the key/element if $opt matches exactly a key/element in $opts (which
 # can be an array/hash) OR expands unambiguously to exactly one key/element in
 # $opts, otherwise return undef. e.g. _expand1('--fo', [qw/--foo --bar --baz
-# --fee --feet/]) and _expand('--fee') is true, but _expand1('--ba', ...) or
-# _expand1('--qux', ...) are undef.
+# --fee --feet/]) and _expand('--fee', ...) will respectively return '--foo' and
+# '--fee' because it expands/is unambiguous in the list, but _expand1('--ba',
+# ...) or _expand1('--qux', ...) will both return undef because '--ba' expands
+# ambiguously (--bar/--baz) while '--qux' cannot be expanded.
 sub _expand1 {
     my ($opt, $opts) = @_;
     my @candidates;
