@@ -508,7 +508,7 @@ sub complete_cli_arg {
 }
 
 1;
-#ABSTRACT: Complete command-line argument using Getopt::Long specification
+#ABSTRACT:
 
 =head1 SYNOPSIS
 
