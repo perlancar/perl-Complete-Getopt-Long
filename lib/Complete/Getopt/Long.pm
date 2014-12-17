@@ -54,7 +54,7 @@ sub _default_completion {
         # if empty, fallback to searching file
     }
 
-    # try completion '~/blah' or '~foo/blah' as if completing file, but do not
+    # try completing '~/blah' or '~foo/blah' as if completing file, but do not
     # expand ~foo (this is supported by complete_file(), so we just give it off
     # to the routine)
     if ($word =~ m!\A(~[^/]*)/!) {
