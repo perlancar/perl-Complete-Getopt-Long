@@ -147,14 +147,19 @@ _
 
 Completion code will receive a hash of arguments containing these keys:
 
-* `type` (str, what is being completed, either `optname`, `optval`, or `arg`)
+* `type` (str, what is being completed, either `optval`, or `arg`)
 * `word` (str, word to be completed)
+* `cword` (int, position of words in the words array, starts from 0)
 * `opt` (str, option name, e.g. `--str`; undef if we're completing argument)
 * `ospec` (str, Getopt::Long option spec, e.g. `str|S=s`; undef when completing
   argument)
-* `argpos` (int, argument position, zero-based; undef if completing option)
-* `extras`
+* `argpos` (int, argument position, zero-based; undef if type='optval')
+* `nth` (int, the number of times this option has seen before, starts from 0
+  that means this is the first time this option has been seen; undef when
+  type='arg')
 * `seen_opts` (hash, all the options seen in `words`)
+
+as well as all keys from `extras` (but these won't override the above keys).
 
 and is expected to return a completion reply in the form of array. The various
 `complete_*` function like those in `Complete::Util` or the other `Complete::*`
@@ -211,8 +216,15 @@ _
             req         => 1,
         },
         extras => {
-            summary => 'To pass extra arguments to completion routines',
+            summary => 'Add extra arguments to completion routine',
             schema  => 'hash',
+            description => <<'_',
+
+The keys from this `extras` hash will be merged into the final `%args` passed to
+completion routines. Note that standard keys like `type`, `word`, and so on as
+described in the function description will not be overwritten by this.
+
+_
         },
     },
     result_naked => 1,
@@ -239,27 +251,7 @@ sub complete_cli_arg {
     my $gospec = $args{getopt_spec} or die "Please specify getopt_spec";
     my $comp0 = $args{completion};
     my $comp = $comp0 // \&_default_completion;
-    my $extras = $args{extras};
-
-    # before v0.06, completion is a hash, we'll support this for a while
-    if (ref($comp) eq 'HASH') {
-        $comp = sub {
-            my %cargs = @_;
-            my $type  = $cargs{type};
-            my $ospec = $cargs{ospec} // '';
-            my $word  = $cargs{word};
-            for my $k (keys %$comp0) {
-                my $v = $comp0->{$k};
-                next unless $k eq '' ? $type eq 'arg' : $k eq $ospec;
-                if (ref($v) eq 'ARRAY') {
-                    return Complete::Util::complete_array_elem(
-                        word=>$word, array=>$v);
-                } else {
-                    return $v->(%cargs);
-                }
-            }
-        };
-    }
+    my $extras = $args{extras} // {};
 
     # parse all options first & supply default completion routine
     my %opts;
@@ -469,10 +461,10 @@ sub complete_cli_arg {
         my $opt = $exp->{optval};
         my $opthash = $opts{$opt} if $opt;
         my %compargs = (
+            %$extras,
             type=>'optval', words=>$args{words}, cword=>$args{cword},
             word=>$word, opt=>$opt, ospec=>$opthash->{ospec},
-            argpos=>undef, extras=>$extras, nth=>$exp->{nth},
-            seen_opts=>\%seen_opts,
+            argpos=>undef, nth=>$exp->{nth}, seen_opts=>\%seen_opts,
         );
         my $compres = $comp->(%compargs);
         if (!defined $compres) {
@@ -490,9 +482,10 @@ sub complete_cli_arg {
     {
         last unless exists($exp->{arg});
         my %compargs = (
+            %$extras,
             type=>'arg', words=>$args{words}, cword=>$args{cword},
             word=>$word, opt=>undef, ospec=>undef,
-            argpos=>$exp->{argpos}, extras=>$extras, seen_opts=>\%seen_opts,
+            argpos=>$exp->{argpos}, seen_opts=>\%seen_opts,
         );
         my $compres = $comp->(%compargs);
         if (!defined $compres) {
