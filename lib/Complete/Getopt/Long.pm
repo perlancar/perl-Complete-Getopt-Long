@@ -145,7 +145,8 @@ _
             schema      => 'code*',
             description => <<'_',
 
-Completion code will receive a hash of arguments containing these keys:
+Completion code will receive a hash of arguments (`%args`) containing these
+keys:
 
 * `type` (str, what is being completed, either `optval`, or `arg`)
 * `word` (str, word to be completed)
@@ -161,12 +162,15 @@ Completion code will receive a hash of arguments containing these keys:
 
 as well as all keys from `extras` (but these won't override the above keys).
 
-and is expected to return a completion reply in the form of array. The various
-`complete_*` function like those in `Complete::Util` or the other `Complete::*`
-modules are suitable to use here.
+and is expected to return a completion answer structure as described in
+`Complete` which is either a hash or an array. The simplest form of answer is
+just to return an array of strings. The various `complete_*` function like those
+in `Complete::Util` or the other `Complete::*` modules are suitable to use here.
 
-Code can also return undef, in which the default completion routine is called.
-It completes from environment variables (`$foo`), usernames (`~foo`), and files.
+Completion routine can also return undef to express declination, in which case
+the default completion routine will then be consulted. The default routine
+completes from shell environment variables (`$FOO`), Unix usernames (`~foo`),
+and files/directories.
 
 Example:
 
