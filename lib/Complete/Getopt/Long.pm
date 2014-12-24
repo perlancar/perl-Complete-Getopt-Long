@@ -517,6 +517,13 @@ See L<Getopt::Long::Complete> for an easy way to use this module.
 =head1 DESCRIPTION
 
 
+=head1 TODO
+
+Handle redirection and other bash syntax. When command-line is 'foo 1 2
+</some/path' bash will supply COMP_WORDS as (foo 1 2 < /some/path). We currently
+do not yet specifically handle this.
+
+
 =head1 SEE ALSO
 
 L<Getopt::Long::Complete>
