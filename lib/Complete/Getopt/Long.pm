@@ -8,6 +8,8 @@ use strict;
 use warnings;
 use Log::Any '$log';
 
+#use Complete;
+
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
@@ -28,7 +30,7 @@ sub _default_completion {
         require Complete::Util;
         {
             my $compres = Complete::Util::complete_env(
-                word=>$word, ci=>1);
+                word=>$word);
             last unless @$compres;
             return {words=>$compres, escmode=>'shellvar'};
         }
@@ -46,7 +48,7 @@ sub _default_completion {
             my $compres = Complete::Util::complete_array(
                 array=>[map {"~" . $_->{user} . ((-d $_->{home}) ? "/":"")}
                             @{ $res->[2] }],
-                word=>$word, ci=>1,
+                word=>$word,
             );
             last unless @$compres;
             return {words=>$compres, path_sep=>'/'};
@@ -59,7 +61,7 @@ sub _default_completion {
     # to the routine)
     if ($word =~ m!\A(~[^/]*)/!) {
         $log->tracef("completing file");
-        return {words=>Complete::Util::complete_file(word=>$word, ci=>1),
+        return {words=>Complete::Util::complete_file(word=>$word),
                 path_sep=>'/'};
     }
 
@@ -80,7 +82,7 @@ sub _default_completion {
         # if empty, fallback to searching file
     }
     $log->tracef("completing with file");
-    return {words=>Complete::Util::complete_file(word=>$word, ci=>1),
+    return {words=>Complete::Util::complete_file(word=>$word),
             path_sep=>'/'};
 }
 
