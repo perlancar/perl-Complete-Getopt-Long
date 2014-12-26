@@ -22,11 +22,11 @@ sub _default_completion {
     my %args = @_;
     my $word = $args{word} // '';
 
-    $log->tracef('entering default completion');
+    $log->tracef('[comp][compgl] entering default completion routine');
 
     # try completing '$...' with shell variables
     if ($word =~ /\A\$/) {
-        $log->tracef('completing shell variable');
+        $log->tracef('[comp][compgl] completing shell variable');
         require Complete::Util;
         {
             my $compres = Complete::Util::complete_env(
@@ -39,7 +39,7 @@ sub _default_completion {
 
     # try completing '~foo' with user dir (appending / if user's home exists)
     if ($word =~ m!\A~([^/]*)\z!) {
-        $log->tracef("completing userdir");
+        $log->tracef("[comp][compgl] completing userdir, user=%s", $1);
         {
             eval { require Unix::Passwd::File };
             last if $@;
@@ -60,7 +60,7 @@ sub _default_completion {
     # expand ~foo (this is supported by complete_file(), so we just give it off
     # to the routine)
     if ($word =~ m!\A(~[^/]*)/!) {
-        $log->tracef("completing file");
+        $log->tracef("[comp][compgl] completing file, path=<%s>", $word);
         return {words=>Complete::Util::complete_file(word=>$word),
                 path_sep=>'/'};
     }
@@ -70,7 +70,7 @@ sub _default_completion {
     # treated like [AB]*.
     require String::Wildcard::Bash;
     if (String::Wildcard::Bash::contains_wildcard($word)) {
-        $log->tracef("completing with wildcard glob");
+        $log->tracef("[comp][compgl] completing with wildcard glob, glob=<%s>", "$word*");
         {
             my $compres = [glob("$word*")];
             last unless @$compres;
@@ -81,7 +81,7 @@ sub _default_completion {
         }
         # if empty, fallback to searching file
     }
-    $log->tracef("completing with file");
+    $log->tracef("[comp][compgl] completing with file, file=<%s>", $word);
     return {words=>Complete::Util::complete_file(word=>$word),
             path_sep=>'/'};
 }
@@ -258,6 +258,10 @@ sub complete_cli_arg {
     my $comp0 = $args{completion};
     my $comp = $comp0 // \&_default_completion;
     my $extras = $args{extras} // {};
+
+    $log->tracef('[comp][compgl] entering %s::%s(), words=%s, cword=%d, word=<%s>, extras=%s',
+                 __PACKAGE__, "complete_cli_arg", \@words, $cword,
+                 $words[$cword], $extras); # XXX use __SUB__
 
     # parse all options first & supply default completion routine
     my %opts;
@@ -455,8 +459,11 @@ sub complete_cli_arg {
             }
         }
         #use DD; dd \@o;
-        push @res, @{ Complete::Util::complete_array_elem(
-            array => \@o, word => $word) };
+        my $compres = Complete::Util::complete_array_elem(
+            array => \@o, word => $word);
+        $log->tracef('[comp][compgl] adding result from option names, '.
+                         'matching options=%s', $compres);
+        push @res, @$compres;
         return {words=>\@res, escmode=>'option'}
             if !exists($exp->{optval}) && !exists($exp->{arg});
     }
@@ -472,9 +479,15 @@ sub complete_cli_arg {
             word=>$word, opt=>$opt, ospec=>$opthash->{ospec},
             argpos=>undef, nth=>$exp->{nth}, seen_opts=>\%seen_opts,
         );
+        $log->tracef('[comp][compgl] invoking \'completion\' routine '.
+                         'to complete option value, option=<%s>', $opt);
         my $compres = $comp->(%compargs);
+        $log->tracef('[comp][compgl] adding result from \'completion\' '.
+                         'routine: %s', $compres);
         if (!defined $compres) {
             $compres = _default_completion(%compargs);
+            $log->tracef('[comp][compgl] adding result from default '.
+                             'completion routine: %s', $compres);
         }
         if (ref($compres) eq 'ARRAY') {
             push @res, @$compres;
@@ -493,9 +506,13 @@ sub complete_cli_arg {
             word=>$word, opt=>undef, ospec=>undef,
             argpos=>$exp->{argpos}, seen_opts=>\%seen_opts,
         );
+        $log->tracef('[comp][compgl] invoking \'completion\' routine '.
+                         'to complete argument');
         my $compres = $comp->(%compargs);
         if (!defined $compres) {
             $compres = _default_completion(%compargs);
+            $log->tracef('[comp][compgl] adding result from default '.
+                             'completion routine: %s', $compres);
         }
         if (ref($compres) eq 'ARRAY') {
             push @res, @$compres;
