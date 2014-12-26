@@ -259,9 +259,9 @@ sub complete_cli_arg {
     my $comp = $comp0 // \&_default_completion;
     my $extras = $args{extras} // {};
 
-    $log->tracef('[comp][compgl] entering %s::%s(), words=%s, cword=%d, word=<%s>, extras=%s',
+    $log->tracef('[comp][compgl] entering %s::%s(), words=%s, cword=%d, word=<%s>',
                  __PACKAGE__, "complete_cli_arg", \@words, $cword,
-                 $words[$cword], $extras); # XXX use __SUB__
+                 $words[$cword]); # XXX use __SUB__
 
     # parse all options first & supply default completion routine
     my %opts;
