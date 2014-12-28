@@ -169,6 +169,7 @@ keys:
   that means this is the first time this option has been seen; undef when
   type='arg')
 * `seen_opts` (hash, all the options seen in `words`)
+* `parsed_opts` (hash, options parsed the standard way)
 
 as well as all keys from `extras` (but these won't override the above keys).
 
@@ -268,6 +269,7 @@ sub complete_cli_arg {
     my $gospec = $args{getopt_spec} or die "Please specify getopt_spec";
     my $comp = $args{completion};
     my $extras = $args{extras} // {};
+    my %parsed_opts;
 
     $log->tracef('[comp][compgl] entering %s(), words=%s, cword=%d, word=<%s>',
                  $fname, \@words, $cword, $words[$cword]);
@@ -387,6 +389,7 @@ sub complete_cli_arg {
                     if (!$max_vals) { $min_vals = $max_vals = 1 }
                 }
 
+                push @{ $parsed_opts{$opt} }, $words[$i+1];
                 for (1 .. $min_vals) {
                     $i++;
                     last WORD if $i >= @words;
@@ -411,6 +414,7 @@ sub complete_cli_arg {
                     $expects[$i] = {separator=>1, optval=>undef, word=>''};
                     if ($i+1 < @words) {
                         $i++;
+                        push @{ $parsed_opts{$opt} }, $words[$i];
                         $expects[$i]{optval} = $opt;
                     }
                 }
@@ -520,6 +524,7 @@ sub complete_cli_arg {
             type=>'arg', words=>$args{words}, cword=>$args{cword},
             word=>$word, opt=>undef, ospec=>undef,
             argpos=>$exp->{argpos}, seen_opts=>\%seen_opts,
+            parsed_opts=>\%parsed_opts,
         );
         $log->tracef('[comp][compgl] invoking \'completion\' routine '.
                          'to complete argument');
