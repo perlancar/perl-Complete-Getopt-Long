@@ -169,7 +169,7 @@ keys:
   that means this is the first time this option has been seen; undef when
   type='arg')
 * `seen_opts` (hash, all the options seen in `words`)
-* `parsed_opts` (hash, options parsed the standard way)
+* `parsed_opts` (hash, options parsed the standard/raw way)
 
 as well as all keys from `extras` (but these won't override the above keys).
 
@@ -324,14 +324,14 @@ sub complete_cli_arg {
         if ($word =~ /\A-/) {
 
             # split bundled short options
-          SPLIT:
+          SPLIT_BUNDLED:
             {
                 my $shorts = $word;
                 if ($shorts =~ s/\A-([^-])(.*)/$2/) {
                     my $opt = "-$1";
                     my $opthash = $opts{$opt};
                     if (!$opthash || $opthash->{parsed}{max_vals}) {
-                        last SPLIT;
+                        last SPLIT_BUNDLED;
                     }
                     $words[$i] = $word = "-$1";
                     $expects[$i]{prefix} = $word;
@@ -364,6 +364,15 @@ sub complete_cli_arg {
                     }
                     $cword += @words-$len_before_split if $cword > $i;
                     #say "D:words increases ", @words-$len_before_split;
+                }
+            }
+
+            # split --foo=val -> --foo, =, val
+          SPLIT_EQUAL:
+            {
+                if ($word =~ /\A(--[^=]+)(=)(.*)/) {
+                    splice @words, $i, 1, $1, $2, $3;
+                    $word = $1;
                 }
             }
 
@@ -414,7 +423,6 @@ sub complete_cli_arg {
                     $expects[$i] = {separator=>1, optval=>undef, word=>''};
                     if ($i+1 < @words) {
                         $i++;
-                        push @{ $parsed_opts{$opt} }, $words[$i];
                         $expects[$i]{optval} = $opt;
                     }
                 }
@@ -430,6 +438,7 @@ sub complete_cli_arg {
     #say "D:cword: $cword";
     #use DD; print "D:expects: "; dd \@expects;
     #use DD; print "D:seen_opts: "; dd \%seen_opts;
+    #use DD; print "D:parsed_opts: "; dd \%parsed_opts;
 
     my $exp = $expects[$cword];
     my $word = $exp->{word} // $words[$cword];
@@ -493,6 +502,7 @@ sub complete_cli_arg {
             type=>'optval', words=>$args{words}, cword=>$args{cword},
             word=>$word, opt=>$opt, ospec=>$opthash->{ospec},
             argpos=>undef, nth=>$exp->{nth}, seen_opts=>\%seen_opts,
+            parsed_opts=>\%parsed_opts,
         );
         my $compres;
         if ($comp) {
