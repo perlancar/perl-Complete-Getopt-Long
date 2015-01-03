@@ -576,13 +576,6 @@ Note that I deliberately do not support C<ci> (case-insensitive) option here.
 Options that differ only in case often are often and they mean different things.
 
 
-=head1 TODO
-
-Handle redirection and other bash syntax. When command-line is 'foo 1 2
-</some/path' bash will supply COMP_WORDS as (foo 1 2 < /some/path). We currently
-do not yet specifically handle this.
-
-
 =head1 SEE ALSO
 
 L<Getopt::Long::Complete>
