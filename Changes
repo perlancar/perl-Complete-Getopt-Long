@@ -1,5 +1,11 @@
 Revision history for Complete-Getopt-Long
 
+0.29    2015-02-15 (PERLANCAR)
+
+	- Add option 'bundling' and support completing single-dash
+	  multiletter options '-foo'.
+
+
 0.28    2015-01-03 (PERLANCAR)
 
 	- No functional changes.
