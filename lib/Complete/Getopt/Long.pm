@@ -137,10 +137,11 @@ from `Getopt::Long` specification. If you provide completion routine in
 
 Note that this routine does not use `Getopt::Long` (it does its own parsing) and
 currently is not affected by Getopt::Long's configuration. Its behavior mimics
-Getopt::Long under these configuration: `bundling`, `no_ignore_case`. Which I
-think is the sensible default. This routine also does not currently support
-`auto_help` and `auto_version`, so you'll need to add those options specifically
-if you want to recognize `--help/-?` and `--version`, respectively.
+Getopt::Long under these configuration: `no_ignore_case`, `bundling` (or
+`no_bundling` if the `bundling` option is turned off). Which I think is the
+sensible default. This routine also does not currently support `auto_help` and
+`auto_version`, so you'll need to add those options specifically if you want to
+recognize `--help/-?` and `--version`, respectively.
 
 _
     args => {
@@ -241,6 +242,24 @@ described in the function description will not be overwritten by this.
 
 _
         },
+        bundling => {
+            schema  => 'bool*',
+            default => 1,
+            'summary.alt.bool.not' => 'Turn off bundling',
+            description => <<'_',
+
+If you turn off bundling, completion of short-letter options won't support
+bundling (e.g. `-b<tab>` won't add more single-letter options), but single-dash
+multiletter options can be recognized. Currently only those specified with a
+single dash will be completed. For example if you have `-foo=s` in your option
+specification, `-f<tab>` can complete it.
+
+This can be used to complete old-style programs, e.g. emacs which has options
+like `-nw`, `-nbc` etc (but also have double-dash options like
+`--no-window-system` or `--no-blinking-cursor`).
+
+_
+        },
     },
     result_naked => 1,
     result => {
@@ -269,6 +288,7 @@ sub complete_cli_arg {
     my $gospec = $args{getopt_spec} or die "Please specify getopt_spec";
     my $comp = $args{completion};
     my $extras = $args{extras} // {};
+    my $bundling = $args{bundling} // 1;
     my %parsed_opts;
 
     $log->tracef('[comp][compgl] entering %s(), words=%s, cword=%d, word=<%s>',
@@ -285,7 +305,9 @@ sub complete_cli_arg {
             my @o = $res->{is_neg} && length($o0) > 1 ?
                 ($o0, "no$o0", "no-$o0") : ($o0);
             for my $o (@o) {
-                my $k = length($o) > 1 ? "--$o" : "-$o";
+                my $k = length($o)==1 ||
+                    (!$bundling && $res->{dash_prefix} eq '-') ?
+                        "-$o" : "--$o";
                 $opts{$k} = {
                     name => $k,
                     ospec => $ospec, # key to getopt specification
@@ -326,6 +348,7 @@ sub complete_cli_arg {
             # split bundled short options
           SPLIT_BUNDLED:
             {
+                last unless $bundling;
                 my $shorts = $word;
                 if ($shorts =~ s/\A-([^-])(.*)/$2/) {
                     my $opt = "-$1";
@@ -370,7 +393,7 @@ sub complete_cli_arg {
             # split --foo=val -> --foo, =, val
           SPLIT_EQUAL:
             {
-                if ($word =~ /\A(--[^=]+)(=)(.*)/) {
+                if ($word =~ /\A(--?[^=]+)(=)(.*)/) {
                     splice @words, $i, 1, $1, $2, $3;
                     $word = $1;
                     $cword += 2 if $cword >= $i;

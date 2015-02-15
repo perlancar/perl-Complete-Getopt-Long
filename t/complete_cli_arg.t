@@ -55,6 +55,14 @@ subtest basics => sub {
                         escmode=>'option'},
     );
     test_complete(
+        name        => 'option name (bundling), bundling=0',
+        args        => {getopt_spec=>\%gospec, bundling=>0},
+        comp_line0  => 'CMD -f^',
+        result      => {words=>
+                            [qw/-F -f/],
+                        escmode=>'option'},
+    );
+    test_complete(
         name        => 'option name (bundling, stops after value expected)',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD -fS^',
@@ -198,6 +206,24 @@ subtest basics => sub {
     # XXX test option name + arg with code completion returning hash
 
     # XXX test optional value
+};
+
+subtest 'config bundling=0' => sub {
+    my %gospec = (
+        'flag1'     => sub{},
+        'flag2'     => sub{},
+        '-flag3'    => sub{},
+    );
+    test_complete(
+        name        => 'basics',
+        args        => {getopt_spec=>\%gospec, bundling=>0},
+        comp_line0  => 'CMD -^',
+        result      => {
+            words   => [qw/--flag1 --flag2 -flag3/],
+            escmode => 'option',
+        },
+    );
+
 };
 
 # XXX test default fallback completion: file
