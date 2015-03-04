@@ -33,7 +33,7 @@ sub _default_completion {
             my $compres = Complete::Util::complete_env(
                 word=>$word);
             last unless @$compres;
-            $fres = {words=>$compres, escmode=>'shellvar'};
+            $fres = {words=>$compres, esc_mode=>'shellvar'};
             goto RETURN_RES;
         }
         # if empty, fallback to searching file
@@ -511,7 +511,7 @@ sub complete_cli_arg {
                          'matching options=%s', $compres);
         push @res, @$compres;
         if (!exists($exp->{optval}) && !exists($exp->{arg})) {
-            $fres = {words=>\@res, escmode=>'option'};
+            $fres = {words=>\@res, esc_mode=>'option'};
             goto RETURN_RES;
         }
     }

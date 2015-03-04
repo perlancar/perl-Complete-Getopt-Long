@@ -29,7 +29,7 @@ subtest basics => sub {
         comp_line0  => 'CMD --f^',
         result      => {words=>
                             [qw/--flag1 --flag2 --float/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'option name (3)',
@@ -37,7 +37,7 @@ subtest basics => sub {
         comp_line0  => 'CMD --str^',
         result      => {words=>
                             [qw/--str/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
 
     );
     test_complete(
@@ -52,7 +52,7 @@ subtest basics => sub {
         comp_line0  => 'CMD -f^',
         result      => {words=>
                             [qw/-f1 -fF -fS/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'option name (bundling), bundling=0',
@@ -60,7 +60,7 @@ subtest basics => sub {
         comp_line0  => 'CMD -f^',
         result      => {words=>
                             [qw/-F -f/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'option name (bundling, stops after value expected)',
@@ -74,7 +74,7 @@ subtest basics => sub {
         comp_line0  => 'CMD -f -1^',
         result      => {words=>
                             [qw/-1F -1S/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'option name with mentioned non-repeatable option (alias)',
@@ -83,7 +83,7 @@ subtest basics => sub {
         result      => {words=>
                             [qw/--bool --flag2 --float --int --no-bool
                                 --nobool --str -F -f -S/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'option name with mentioned non-repeatable option (alias 2)',
@@ -92,7 +92,7 @@ subtest basics => sub {
         result      => {words=>
                             [qw/--bool --flag2 --float --int --no-bool
                                 --nobool --str -F -f -S/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'option name with mentioned non-repeatable option (bundling)',
@@ -101,7 +101,7 @@ subtest basics => sub {
         result      => {words=>
                             [qw/--bool --float --int --no-bool
                                 --nobool --str -F -S/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     my @foo;
     test_complete(
@@ -110,7 +110,7 @@ subtest basics => sub {
         comp_line0  => 'CMD --foo 1 --bar 2 --^',
         result      => {words=>
                             [qw/--foo/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'repeatable option name 2 (desttype @)',
@@ -118,7 +118,7 @@ subtest basics => sub {
         comp_line0  => 'CMD --foo 1 --bar 2 --^',
         result      => {words=>
                             [qw/--foo/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'repeatable option name 3 (desttype %)',
@@ -126,7 +126,7 @@ subtest basics => sub {
         comp_line0  => 'CMD --foo 1 --bar 2 --^',
         result      => {words=>
                             [qw/--foo/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'repeatable option name 4 (incremental)',
@@ -134,7 +134,7 @@ subtest basics => sub {
         comp_line0  => 'CMD --foo --bar 2 --^',
         result      => {words=>
                             [qw/--foo/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
     test_complete(
         name        => 'option name + arg completion',
@@ -153,7 +153,7 @@ subtest basics => sub {
         result      => {words=>
                             [qw/--bool --flag1 --flag2 --float --int --no-bool
                                 --nobool --str -1 -F -f -S/],
-                        escmode=>'option'},
+                        esc_mode=>'option'},
     );
 
     test_complete(
@@ -220,7 +220,7 @@ subtest 'config bundling=0' => sub {
         comp_line0  => 'CMD -^',
         result      => {
             words   => [qw/--flag1 --flag2 -flag3/],
-            escmode => 'option',
+            esc_mode => 'option',
         },
     );
 
