@@ -1,5 +1,10 @@
 Revision history for Complete-Getopt-Long
 
+0.31    2015-04-09 (PERLANCAR)
+
+	- Replace Log::Any with Log::Any::IfLOG.
+
+
 0.30    2015-03-04 (PERLANCAR)
 
 	- Follow Complete 0.12 (escmode renamed to esc_mode).
