@@ -564,7 +564,7 @@ sub complete_cli_arg {
     }
 
     $log->tracef("[comp][compgl] combining result from %d source(s)", ~~@answers);
-    $fres = Complete::Util::combine_answers(@answers);
+    $fres = Complete::Util::combine_answers(@answers) // [];
 
   RETURN_RES:
     $log->tracef("[comp][compgl] leaving %s(), result=%s", $fname, $fres);

@@ -185,7 +185,7 @@ subtest basics => sub {
         args        => {getopt_spec=>\%gospec,
                         completion=>sub { [qw/aa a b c/] }},
         comp_line0  => 'CMD --str ^',
-        result      => [qw/a aa b c/],
+        result      => [qw/aa a b c/],
     );
 
     test_complete(
@@ -197,7 +197,7 @@ subtest basics => sub {
                             [$args{bar}, $args{foo}];
                         }},
         comp_line0  => 'CMD --str ^',
-        result      => [qw/10 20/],
+        result      => [qw/20 10/],
     );
 
     # XXX test option value with completion routine returning hash

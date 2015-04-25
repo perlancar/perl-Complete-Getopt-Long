@@ -1,5 +1,12 @@
 Revision history for Complete-Getopt-Long
 
+0.32    2015-04-25 (PERLANCAR)
+
+	- Use combine_answers() from Complete::Util 0.28+ to allow custom
+          completion routine to provide final answer without additional
+          completion answers. An application of this is in Games::CompHangman.
+
+
 0.31    2015-04-09 (PERLANCAR)
 
 	- Replace Log::Any with Log::Any::IfLOG.
