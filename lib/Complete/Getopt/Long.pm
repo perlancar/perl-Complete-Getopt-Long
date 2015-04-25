@@ -275,7 +275,6 @@ _
 sub complete_cli_arg {
     require Complete::Util;
     require Getopt::Long::Util;
-    require List::MoreUtils;
 
     my %args = @_;
 
@@ -466,7 +465,8 @@ sub complete_cli_arg {
 
     my $exp = $expects[$cword];
     my $word = $exp->{word} // $words[$cword];
-    my @res;
+
+    my @answers;
 
     # complete option names
     {
@@ -509,9 +509,9 @@ sub complete_cli_arg {
             array => \@o, word => $word);
         $log->tracef('[comp][compgl] adding result from option names, '.
                          'matching options=%s', $compres);
-        push @res, @$compres;
+        push @answers, $compres;
         if (!exists($exp->{optval}) && !exists($exp->{arg})) {
-            $fres = {words=>\@res, esc_mode=>'option'};
+            $fres = {words=>$compres, esc_mode=>'option'};
             goto RETURN_RES;
         }
     }
@@ -539,15 +539,7 @@ sub complete_cli_arg {
             $log->tracef('[comp][compgl] adding result from default '.
                              'completion routine');
         }
-        if (ref($compres) eq 'ARRAY') {
-            push @res, @$compres;
-        } elsif (ref($compres) eq 'HASH') {
-            unless (@res) {
-                $fres = $compres;
-                goto RETURN_RES;
-            }
-            push @res, @{ $compres->{words} // [] };
-        }
+        push @answers, $compres;
     }
 
     # complete argument
@@ -568,18 +560,12 @@ sub complete_cli_arg {
             $log->tracef('[comp][compgl] adding result from default '.
                              'completion routine: %s', $compres);
         }
-        if (ref($compres) eq 'ARRAY') {
-            push @res, @$compres;
-        } elsif (ref($compres) eq 'HASH') {
-            unless (@res) {
-                $fres = $compres;
-                goto RETURN_RES;
-            }
-            push @res, @{ $compres->{words} // [] };
-        }
+        push @answers, $compres;
     }
 
-    $fres = [sort(List::MoreUtils::uniq(@res))];
+    $log->tracef("[comp][compgl] combining result from %d source(s)", ~~@answers);
+    $fres = Complete::Util::combine_answers(@answers);
+
   RETURN_RES:
     $log->tracef("[comp][compgl] leaving %s(), result=%s", $fname, $fres);
     $fres;
