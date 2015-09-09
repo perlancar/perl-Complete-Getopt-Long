@@ -8,8 +8,6 @@ use strict;
 use warnings;
 use Log::Any::IfLOG '$log';
 
-#use Complete;
-
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
