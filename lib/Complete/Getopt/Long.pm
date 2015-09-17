@@ -17,6 +17,10 @@ our @EXPORT_OK = qw(
 our %SPEC;
 
 sub _default_completion {
+    require Complete::Env;
+    require Complete::File;
+    require Complete::Util;
+
     my %args = @_;
     my $word = $args{word} // '';
 
@@ -26,9 +30,8 @@ sub _default_completion {
     # try completing '$...' with shell variables
     if ($word =~ /\A\$/) {
         $log->tracef('[comp][compgl] completing shell variable');
-        require Complete::Util;
         {
-            my $compres = Complete::Util::complete_env(
+            my $compres = Complete::Env::complete_env(
                 word=>$word);
             last unless @$compres;
             $fres = {words=>$compres, esc_mode=>'shellvar'};
@@ -85,7 +88,7 @@ sub _default_completion {
         # if empty, fallback to searching file
     }
     $log->tracef("[comp][compgl] completing with file, file=<%s>", $word);
-    $fres = {words=>Complete::Util::complete_file(word=>$word),
+    $fres = {words=>Complete::File::complete_file(word=>$word),
              path_sep=>'/'};
   RETURN_RES:
     $log->tracef("[comp][compgl] leaving default completion routine, result=%s", $fres);
