@@ -1,5 +1,13 @@
 Revision history for Complete-Getopt-Long
 
+0.35    2015-09-17 (PERLANCAR)
+
+	- No functional changes.
+
+	- Adjust to Complete::Util 0.37 (rename complete_array() to
+	  complete_array_elem()).
+
+
 0.34    2015-09-09 (PERLANCAR)
 
 	- No functional changes.
