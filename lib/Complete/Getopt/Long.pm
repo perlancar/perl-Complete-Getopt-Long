@@ -45,7 +45,7 @@ sub _default_completion {
             last if $@;
             my $res = Unix::Passwd::File::list_users(detail=>1);
             last unless $res->[0] == 200;
-            my $compres = Complete::Util::complete_array(
+            my $compres = Complete::Util::complete_array_elem(
                 array=>[map {"~" . $_->{user} . ((-d $_->{home}) ? "/":"")}
                             @{ $res->[2] }],
                 word=>$word,
