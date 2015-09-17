@@ -197,7 +197,7 @@ Example:
             my $word  = $args{word};
             my $ospec = $args{ospec};
             if ($ospec && $ospec eq 'format=s') {
-                complete_array(array=>[qw/json text xml yaml/], word=>$word);
+                complete_array_elem(array=>[qw/json text xml yaml/], word=>$word);
             } else {
                 complete_user(word=>$word);
             }
