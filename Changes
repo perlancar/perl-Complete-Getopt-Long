@@ -1,5 +1,10 @@
 Revision history for Complete-Getopt-Long
 
+0.37    2015-09-22 (PERLANCAR)
+
+	- [Bugfix] Forgot to update one function call.
+
+
 0.36    2015-09-17 (PERLANCAR)
 
 	- Adjust to Complete::Util 0.36 (complete_file() & complete_env()
