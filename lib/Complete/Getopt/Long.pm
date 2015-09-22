@@ -65,7 +65,7 @@ sub _default_completion {
     # to the routine)
     if ($word =~ m!\A(~[^/]*)/!) {
         $log->tracef("[comp][compgl] completing file, path=<%s>", $word);
-        $fres = {words=>Complete::Util::complete_file(word=>$word),
+        $fres = {words=>Complete::File::complete_file(word=>$word),
                  path_sep=>'/'};
         goto RETURN_RES;
     }
