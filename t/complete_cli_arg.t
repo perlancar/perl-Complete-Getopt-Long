@@ -89,10 +89,12 @@ subtest basics => sub {
         name        => 'option name with mentioned non-repeatable option (alias 2)',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD -^  --flag1', # ditto
-        result      => {words=>
-                            [qw/--bool --flag2 --float --int --no-bool
-                                --nobool --str -F -f -S/],
-                        esc_mode=>'option'},
+        #result      => {words=>
+        #                    [qw/--bool --flag2 --float --int --no-bool
+        #                        --nobool --str -F -f -S/],
+        #                esc_mode=>'option'},
+        result      => [qw/--bool --flag2 --float --int --no-bool
+                           --nobool --str -F -S -f/],
     );
     test_complete(
         name        => 'option name with mentioned non-repeatable option (bundling)',
