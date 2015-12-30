@@ -252,7 +252,7 @@ sub test_complete {
 
         require Complete::Bash;
         my ($words, $cword) = @{ Complete::Bash::parse_cmdline(
-            $comp_line, $comp_point, '=') };
+            $comp_line, $comp_point, {truncate_current_word=>1}) };
         shift @$words; $cword--; # strip command name
 
         require Complete::Getopt::Long;
