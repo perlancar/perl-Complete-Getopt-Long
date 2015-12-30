@@ -1,5 +1,12 @@
 Revision history for Complete-Getopt-Long
 
+0.38    2015-12-30 (PERLANCAR)
+
+	- Adjust to Complete::Bash 0.23.
+
+	- Bump prereq version Log::Any::IfLOG to 0.07.
+
+
 0.37    2015-09-22 (PERLANCAR)
 
 	- [Bugfix] Forgot to update one function call.
