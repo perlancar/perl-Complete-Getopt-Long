@@ -471,6 +471,7 @@ sub complete_cli_arg {
 
     # complete option names
     {
+        last if $word =~ /\A[^-]/;
         last unless exists $exp->{optname};
         last if defined($exp->{do_complete_optname}) &&
             !$exp->{do_complete_optname};
