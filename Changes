@@ -1,5 +1,14 @@
 Revision history for Complete-Getopt-Long
 
+0.39    2016-01-07 (PERLANCAR)
+
+	- Don't bother providing completion of option names if word doesn't
+	  start with -, this starts causing problem after
+	  Complete::Util::complete_array_elem() has char_mode matching
+	  which means in Perinci::CmdLine completing for subcommand names
+	  can still get option names.
+
+
 0.38    2015-12-30 (PERLANCAR)
 
 	- Adjust to Complete::Bash 0.23.
