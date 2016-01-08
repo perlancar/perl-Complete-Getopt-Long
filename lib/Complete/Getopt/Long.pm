@@ -299,6 +299,7 @@ sub complete_cli_arg {
     for my $ospec (keys %$gospec) {
         my $res = Getopt::Long::Util::parse_getopt_long_opt_spec($ospec)
             or die "Can't parse option spec '$ospec'";
+        next if $res->{is_arg};
         $res->{min_vals} //= $res->{type} ? 1 : 0;
         $res->{max_vals} //= $res->{type} || $res->{opttype} ? 1:0;
         for my $o0 (@{ $res->{opts} }) {
