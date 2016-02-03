@@ -1,5 +1,12 @@
 Revision history for Complete-Getopt-Long
 
+0.41    2016-02-03 (PERLANCAR)
+
+	- No functional changes.
+
+	- Adjust to Complete::Bash 0.27.
+
+
 0.40    2016-01-23 (PERLANCAR)
 
 	- Adjust to Complete::Bash 0.25.
