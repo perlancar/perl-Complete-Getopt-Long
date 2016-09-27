@@ -133,12 +133,12 @@ $SPEC{complete_cli_arg} = {
     description => <<'_',
 
 This routine can complete option names, where the option names are retrieved
-from `Getopt::Long` specification. If you provide completion routine in
+from <pm:Getopt::Long> specification. If you provide completion routine in
 `completion`, you can also complete _option values_ and _arguments_.
 
-Note that this routine does not use `Getopt::Long` (it does its own parsing) and
-currently is not affected by Getopt::Long's configuration. Its behavior mimics
-Getopt::Long under these configuration: `no_ignore_case`, `bundling` (or
+Note that this routine does not use <pm:Getopt::Long> (it does its own parsing)
+and currently is not affected by Getopt::Long's configuration. Its behavior
+mimics Getopt::Long under these configuration: `no_ignore_case`, `bundling` (or
 `no_bundling` if the `bundling` option is turned off). Which I think is the
 sensible default. This routine also does not currently support `auto_help` and
 `auto_version`, so you'll need to add those options specifically if you want to
@@ -178,7 +178,8 @@ as well as all keys from `extras` (but these won't override the above keys).
 and is expected to return a completion answer structure as described in
 `Complete` which is either a hash or an array. The simplest form of answer is
 just to return an array of strings. The various `complete_*` function like those
-in `Complete::Util` or the other `Complete::*` modules are suitable to use here.
+in <pm:Complete::Util> or the other `Complete::*` modules are suitable to use
+here.
 
 Completion routine can also return undef to express declination, in which case
 the default completion routine will then be consulted. The default routine
@@ -213,7 +214,7 @@ _
             summary     => 'Command line arguments, like @ARGV',
             description => <<'_',
 
-See function `parse_cmdline` in `Complete::Bash` on how to produce this (if
+See function `parse_cmdline` in <pm:Complete::Bash> on how to produce this (if
 you're using bash).
 
 _
@@ -225,7 +226,7 @@ _
                 "Index in words of the word we're trying to complete",
             description => <<'_',
 
-See function `parse_cmdline` in `Complete::Bash` on how to produce this (if
+See function `parse_cmdline` in <pm:Complete::Bash> on how to produce this (if
 you're using bash).
 
 _
@@ -267,7 +268,7 @@ _
         schema => ['any*' => of => ['hash*', 'array*']],
         description => <<'_',
 
-You can use `format_completion` function in `Complete::Bash` module to format
+You can use `format_completion` function in <pm:Complete::Bash> module to format
 the result of this function for bash.
 
 _
