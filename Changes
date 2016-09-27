@@ -1,5 +1,12 @@
 Revision history for Complete-Getopt-Long
 
+0.42    2016-09-27 (PERLANCAR)
+
+        - [Bugfix] Avoid perl error "Can't use an undefined value as a
+          subroutine reference" when there is no 'completion' argument passed to
+          complete_cli_arg() (thanks Mary Ehlers).
+
+
 0.41    2016-02-03 (PERLANCAR)
 
 	- No functional changes.
