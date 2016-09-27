@@ -585,9 +585,6 @@ See L<Getopt::Long::Complete> for an easy way to use this module.
 
 =head1 DESCRIPTION
 
-Note that I deliberately do not support C<ci> (case-insensitive) option here.
-Options that differ only in case often are often and they mean different things.
-
 
 =head1 SEE ALSO
 
