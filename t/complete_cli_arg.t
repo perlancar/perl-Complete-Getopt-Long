@@ -4,8 +4,9 @@ use 5.010;
 use strict;
 use warnings;
 
+use File::chdir;
+use File::Temp qw(tempdir);
 use Test::More 0.98;
-use Test::Deep 0.107; # perl 5.10 fixes
 
 subtest basics => sub {
     my %gospec = (
@@ -19,9 +20,8 @@ subtest basics => sub {
 
     test_complete(
         name        => 'option name',
-        args        => {getopt_spec=>\%gospec, },
+        args        => {getopt_spec=>\%gospec, completion=>sub{[]}},
         comp_line0  => 'CMD ^',
-        default     => 1,
         result      => [qw/--bool --flag1 --flag2 --float --int
                            --no-bool --nobool --str -1 -F -S -f/],
     );
@@ -44,9 +44,8 @@ subtest basics => sub {
     );
     test_complete(
         name        => 'option name (single letter n! does not get --nox and --no-x)',
-        args        => {getopt_spec=>{'n!'=>sub{}}, },
+        args        => {getopt_spec=>{'n!'=>sub{}}, completion=>sub{[]}, },
         comp_line0  => 'CMD ^',
-        default     => 1,
         result      => [qw/-n/],
     );
     test_complete(
@@ -161,16 +160,14 @@ subtest basics => sub {
 
     test_complete(
         name        => 'option value without completion routine',
-        args        => {getopt_spec=>\%gospec, },
+        args        => {getopt_spec=>\%gospec, completion=>sub{[]}},
         comp_line0  => 'CMD --str ^',
-        default     => 1,
         result      => [qw//],
     );
     test_complete(
         name         => 'option value without completion routine (2)',
-        args         => {getopt_spec=>\%gospec, },
+        args         => {getopt_spec=>\%gospec, completion=>sub{[]}},
         comp_line0   => 'CMD --str=^',
-        default      => 1,
         default_word => '', # Don't use '--str=' (words expanded into --str, =, '')
         result       => [qw//],
     );
@@ -178,9 +175,8 @@ subtest basics => sub {
     # XXX Unless pass_through, Getopt::Long would error on this
     test_complete(
         name         => 'option value for unknown option',
-        args         => {getopt_spec=>\%gospec, },
+        args         => {getopt_spec=>\%gospec, completion=>sub{[]}},
         comp_line0   => 'CMD --foo=^',
-        default      => 1,
         default_word => '', # Don't use '--str=' (words expanded into --str, =, '')
         result       => [qw//],
     );
@@ -188,9 +184,8 @@ subtest basics => sub {
     # XXX Unless pass_through, Getopt::Long would error on this
     test_complete(
         name        => 'option value for option that does not expect value',
-        args        => {getopt_spec=>\%gospec, },
+        args        => {getopt_spec=>\%gospec, completion=>sub{[]}},
         comp_line0  => 'CMD --flag1=^',
-        default     => 1,
         default_word => '', # Don't use '--flag1=' (words expanded into --str, =, '')
         result      => [qw//],
     );
@@ -240,8 +235,24 @@ subtest 'config bundling=0' => sub {
 
 };
 
-# XXX test default fallback completion: file
-# XXX test default fallback completion: env
+subtest "default fallback completion" => sub {
+    my $tempdir = tempdir(CLEANUP => 1);
+    local $CWD = $tempdir;
+    open my $fh1, ">", "f1";
+    open my $fh2, ">", "f2";
+
+    test_complete(
+        name        => 'file fallback completion',
+        args        => {getopt_spec=>{'foo'=>sub{}}},
+        comp_line0  => 'CMD ^',
+        result      => {words=>[qw/--foo f1 f2/], path_sep=>'/'},
+    );
+    # XXX test default fallback completion: env (complete '$...')
+    # XXX test default fallback completion: file ~foo
+    # XXX test default fallback completion: file ~/blah or ~foo/blah
+    # XXX test default fallback completion: file ~/blah or ~foo/blah
+    # XXX test default fallback completion: file word contains wildcard
+};
 
 DONE_TESTING:
 done_testing;
@@ -276,28 +287,11 @@ sub test_complete {
             %{$args{args}},
         );
 
-        my $exp;
-        if ($args{default}) {
-            # Generate expected defaults if necessary
-            # Presumably, the results of this routine have been tested
-            #   in the Complete::{Env|File|Util} packages, for which
-            #   this routine is a wrapper.
-            my $default = Complete::Getopt::Long::_default_completion(
-                word => $args{default_word} // $words->[$cword]
-            ) if $args{default};
-
-            $exp = Complete::Util::combine_answers($args{result}, $default);
-
-            # combine_answers sorts the words
-            $exp->{words} = bag(@{$exp->{words}});
-        }
-        else {
-            $exp = $args{result};
-        }
+        my $exp = $args{result};
 
         #use DD; dd { words=>$words, cword=>$cword, %{$args{args}} };
-        cmp_deeply($res, $exp, 'result') or diag explain($res);
-
-        done_testing();
+        is_deeply($res, $exp, 'result')
+            or diag("result: ", explain($res),
+                    "expected: ", explain($exp));
     };
 }
