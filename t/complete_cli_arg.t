@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use Test::More 0.98;
+use Test::Deep 0.107; # perl 5.10 fixes
 
 subtest basics => sub {
     my %gospec = (
@@ -20,6 +21,7 @@ subtest basics => sub {
         name        => 'option name',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD ^',
+        default     => 1,
         result      => [qw/--bool --flag1 --flag2 --float --int
                            --no-bool --nobool --str -1 -F -S -f/],
     );
@@ -44,6 +46,7 @@ subtest basics => sub {
         name        => 'option name (single letter n! does not get --nox and --no-x)',
         args        => {getopt_spec=>{'n!'=>sub{}}, },
         comp_line0  => 'CMD ^',
+        default     => 1,
         result      => [qw/-n/],
     );
     test_complete(
@@ -160,24 +163,35 @@ subtest basics => sub {
         name        => 'option value without completion routine',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD --str ^',
+        default     => 1,
         result      => [qw//],
     );
     test_complete(
-        name        => 'option value without completion routine (2)',
-        args        => {getopt_spec=>\%gospec, },
-        comp_line0  => 'CMD --str=^',
-        result      => [qw//],
+        name         => 'option value without completion routine (2)',
+        args         => {getopt_spec=>\%gospec, },
+        comp_line0   => 'CMD --str=^',
+        default      => 1,
+        default_word => '', # Don't use '--str=' (words expanded into --str, =, '')
+        result       => [qw//],
     );
+
+    # XXX Unless pass_through, Getopt::Long would error on this
     test_complete(
-        name        => 'option value for unknown option',
-        args        => {getopt_spec=>\%gospec, },
-        comp_line0  => 'CMD --foo=^',
-        result      => [qw//],
+        name         => 'option value for unknown option',
+        args         => {getopt_spec=>\%gospec, },
+        comp_line0   => 'CMD --foo=^',
+        default      => 1,
+        default_word => '', # Don't use '--str=' (words expanded into --str, =, '')
+        result       => [qw//],
     );
+
+    # XXX Unless pass_through, Getopt::Long would error on this
     test_complete(
         name        => 'option value for option that does not expect value',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD --flag1=^',
+        default     => 1,
+        default_word => '', # Don't use '--flag1=' (words expanded into --str, =, '')
         result      => [qw//],
     );
     test_complete(
@@ -256,13 +270,33 @@ sub test_complete {
         shift @$words; $cword--; # strip command name
 
         require Complete::Getopt::Long;
+
         my $res = Complete::Getopt::Long::complete_cli_arg(
             words=>$words, cword=>$cword,
-            completion=>sub{[]},
             %{$args{args}},
         );
+
+        my $exp;
+        if ($args{default}) {
+            # Generate expected defaults if necessary
+            # Presumably, the results of this routine have been tested
+            #   in the Complete::{Env|File|Util} packages, for which
+            #   this routine is a wrapper.
+            my $default = Complete::Getopt::Long::_default_completion(
+                word => $args{default_word} // $words->[$cword]
+            ) if $args{default};
+
+            $exp = Complete::Util::combine_answers($args{result}, $default);
+
+            # combine_answers sorts the words
+            $exp->{words} = bag(@{$exp->{words}});
+        }
+        else {
+            $exp = $args{result};
+        }
+
         #use DD; dd { words=>$words, cword=>$cword, %{$args{args}} };
-        is_deeply($res, $args{result}, "result") or diag explain($res);
+        cmp_deeply($res, $exp, 'result') or diag explain($res);
 
         done_testing();
     };

@@ -558,7 +558,7 @@ sub complete_cli_arg {
         );
         $log->tracef('[comp][compgl] invoking \'completion\' routine '.
                          'to complete argument');
-        my $compres = $comp->(%compargs);
+        my $compres = $comp->(%compargs) if $comp;
         if (!defined $compres) {
             $compres = _default_completion(%compargs);
             $log->tracef('[comp][compgl] adding result from default '.
