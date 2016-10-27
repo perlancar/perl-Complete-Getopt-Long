@@ -334,7 +334,7 @@ sub complete_cli_arg {
     while (1) {
         last WORD if ++$i >= @words;
         my $word = $words[$i];
-        #say "D:i=$i, word=$word, ~~@words=",~~@words;
+        #say "D:i=$i, word=$word, ~~\@words=",~~@words;
 
         if ($word eq '--' && $i != $cword) {
             $expects[$i] = {separator=>1};
@@ -424,18 +424,19 @@ sub complete_cli_arg {
                     if (!$max_vals) { $min_vals = $max_vals = 1 }
                 }
 
-                push @{ $parsed_opts{$opt} }, $words[$i+1];
                 for (1 .. $min_vals) {
                     $i++;
                     last WORD if $i >= @words;
                     $expects[$i]{optval} = $opt;
                     $expects[$i]{nth} = $nth;
+                    push @{ $parsed_opts{$opt} }, $words[$i];
                 }
                 for (1 .. $max_vals-$min_vals) {
                     last if $i+$_ >= @words;
                     last if $words[$i+$_] =~ /\A-/; # a new option
                     $expects[$i+$_]{optval} = $opt; # but can also be optname
                     $expects[$i]{nth} = $nth;
+                    push @{ $parsed_opts{$opt} }, $words[$i+$_];
                 }
             } else {
                 # an unknown option, assume it doesn't require argument, unless
