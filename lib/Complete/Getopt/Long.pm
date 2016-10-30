@@ -322,9 +322,14 @@ sub complete_cli_arg {
 
     my %seen_opts;
 
-    # for each word, we try to find out whether it's supposed to complete option
-    # name, or option value, or argument, or separator (or more than one of
-    # them). plus some other information.
+    # for each word (each element in this array), we try to find out whether
+    # it's supposed to complete option name, or option value, or argument, or
+    # separator (or more than one of them). plus some other information.
+    #
+    # each element is a hash. if hash contains 'optname' key then it expects an
+    # option name. if hash contains 'optval' key then it expects an option
+    # value.
+
     my @expects;
 
     my $i = -1;
@@ -359,8 +364,7 @@ sub complete_cli_arg {
                         last SPLIT_BUNDLED;
                     }
                     $words[$i] = $word = "-$1";
-                    $expects[$i]{prefix} = $word;
-                    $expects[$i]{word} = '';
+                    $expects[$i]{prefix} //= $word;
                     $expects[$i]{short_only} = 1;
                     my $len_before_split = @words;
                     my $j = $i+1;
@@ -383,6 +387,7 @@ sub complete_cli_arg {
                             last SHORTOPT;
                         } else {
                             splice @words, $j, 0, $opt;
+                            $expects[$i]{prefix} .= $1;
                             $j++;
                             # continue splitting
                         }
@@ -468,7 +473,7 @@ sub complete_cli_arg {
     #use DD; print "D:parsed_opts: "; dd \%parsed_opts;
 
     my $exp = $expects[$cword];
-    my $word = $exp->{word} // $words[$cword];
+    my $word = $words[$cword];
 
     my @answers;
 

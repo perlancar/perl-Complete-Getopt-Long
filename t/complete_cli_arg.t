@@ -12,6 +12,8 @@ subtest basics => sub {
     my %gospec = (
         'flag1|1'     => sub{},
         'flag2|f'     => sub{},
+        'flag3|2'     => sub{},
+        'flag4|3'     => sub{},
         'bool!'       => sub{},
         'int=i'       => sub{},
         'float|F=f'   => sub{},
@@ -22,15 +24,15 @@ subtest basics => sub {
         name        => 'option name',
         args        => {getopt_spec=>\%gospec, completion=>sub{[]}},
         comp_line0  => 'CMD ^',
-        result      => [qw/--bool --flag1 --flag2 --float --int
-                           --no-bool --nobool --str -1 -F -S -f/],
+        result      => [qw/--bool --flag1 --flag2 --flag3 --flag4 --float --int
+                           --no-bool --nobool --str -1 -2 -3 -F -S -f/],
     );
     test_complete(
         name        => 'option name (2)',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD --f^',
         result      => {words=>
-                            [qw/--flag1 --flag2 --float/],
+                            [qw/--flag1 --flag2 --flag3 --flag4 --float/],
                         esc_mode=>'option'},
     );
     test_complete(
@@ -53,7 +55,31 @@ subtest basics => sub {
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD -f^',
         result      => {words=>
-                            [qw/-f1 -fF -fS/],
+                            [qw/-f1 -f2 -f3 -fF -fS/],
+                        esc_mode=>'option'},
+    );
+    test_complete(
+        name        => 'option name (bundling 2)',
+        args        => {getopt_spec=>\%gospec, },
+        comp_line0  => 'CMD -f1^',
+        result      => {words=>
+                            [qw/-f12 -f13 -f1F -f1S/],
+                        esc_mode=>'option'},
+    );
+    test_complete(
+        name        => 'option name (bundling 3)',
+        args        => {getopt_spec=>\%gospec, },
+        comp_line0  => 'CMD -f12^',
+        result      => {words=>
+                            [qw/-f123 -f12F -f12S/],
+                        esc_mode=>'option'},
+    );
+    test_complete(
+        name        => 'option name (bundling 4)',
+        args        => {getopt_spec=>\%gospec, },
+        comp_line0  => 'CMD -f132^',
+        result      => {words=>
+                            [qw/-f132F -f132S/],
                         esc_mode=>'option'},
     );
     test_complete(
@@ -71,11 +97,11 @@ subtest basics => sub {
         result      => [qw//],
     );
     test_complete(
-        name        => 'option name (bundling 2)',
+        name        => 'option name (bundling 5)',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD -f -1^',
         result      => {words=>
-                            [qw/-1F -1S/],
+                            [qw/-12 -13 -1F -1S/],
                         esc_mode=>'option'},
     );
     test_complete(
@@ -83,8 +109,8 @@ subtest basics => sub {
         args        => {getopt_spec=>\%gospec},
         comp_line0  => 'CMD --flag1 -^', # means -1 is also mentioned
         result      => {words=>
-                            [qw/--bool --flag2 --float --int --no-bool
-                                --nobool --str -F -f -S/],
+                            [qw/--bool --flag2 --flag3 --flag4 --float --int --no-bool
+                                --nobool --str -2 -3 -F -f -S/],
                         esc_mode=>'option'},
     );
     test_complete(
@@ -92,8 +118,8 @@ subtest basics => sub {
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD -^  --flag1', # ditto
         result      => {words=>
-                            [qw/--bool --flag2 --float --int --no-bool
-                                --nobool --str -F -f -S/],
+                            [qw/--bool --flag2 --flag3 --flag4 --float --int --no-bool
+                                --nobool --str -2 -3 -F -f -S/],
                         esc_mode=>'option'},
     );
     test_complete(
@@ -101,8 +127,8 @@ subtest basics => sub {
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD -f1 -^',
         result      => {words=>
-                            [qw/--bool --float --int --no-bool
-                                --nobool --str -F -S/],
+                            [qw/--bool --flag3 --flag4 --float --int --no-bool
+                                --nobool --str -2 -3 -F -S/],
                         esc_mode=>'option'},
     );
     my @foo;
@@ -143,18 +169,18 @@ subtest basics => sub {
         args        => {getopt_spec=>\%gospec,
                         completion=>sub { [qw/-x/] }},
         comp_line0  => 'CMD ^',
-        result      => [qw/--bool --flag1 --flag2 --float --int --no-bool
-                           --nobool --str -1 -F -S -f -x/],
+        result      => [qw/--bool --flag1 --flag2 --flag3 --flag4 --float --int --no-bool
+                           --nobool --str -1 -2 -3 -F -S -f -x/],
     );
     # if the user types '-', she indicates that she wants option names only
     test_complete(
-        name        => 'option name',
+        name        => 'option name only (user types -)',
         args        => {getopt_spec=>\%gospec,
                         completion=>sub { [qw/-x/] }},
         comp_line0  => 'CMD -^',
         result      => {words=>
-                            [qw/--bool --flag1 --flag2 --float --int --no-bool
-                                --nobool --str -1 -F -f -S/],
+                            [qw/--bool --flag1 --flag2 --flag3 --flag4 --float --int --no-bool
+                                --nobool --str -1 -2 -3 -F -f -S/],
                         esc_mode=>'option'},
     );
 
