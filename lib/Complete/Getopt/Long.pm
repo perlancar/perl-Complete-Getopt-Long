@@ -357,44 +357,70 @@ sub complete_cli_arg {
             {
                 last unless $bundling;
                 my $shorts = $word;
-                if ($shorts =~ s/\A-([^-])(.*)/$2/) {
-                    my $opt = "-$1";
-                    my $opthash = $opts{$opt};
-                    if (!$opthash || $opthash->{parsed}{max_vals}) {
-                        last SPLIT_BUNDLED;
-                    }
-                    $words[$i] = $word = "-$1";
-                    $expects[$i]{prefix} //= $word;
-                    $expects[$i]{short_only} = 1;
-                    my $len_before_split = @words;
-                    my $j = $i+1;
-                  SHORTOPT:
-                    while ($shorts =~ s/(.)//) {
-                        $opt = "-$1";
-                        $opthash = $opts{$opt};
-                        if (!$opthash || $opthash->{parsed}{max_vals}) {
-                            # end after unknown short option or short option
-                            # expects value, and don't complete this optname
-                            # later
-                            $expects[$i]{do_complete_optname} = 0;
-                            if (length $shorts) {
-                                splice @words, $j, 0, $opt, '=', $shorts;
-                                $j += 3;
-                            } else {
-                                splice @words, $j, 0, $opt;
-                                $j++;
-                            }
-                            last SHORTOPT;
-                        } else {
-                            splice @words, $j, 0, $opt;
-                            $expects[$i]{prefix} .= $1;
-                            $j++;
-                            # continue splitting
-                        }
-                    }
-                    $cword += @words-$len_before_split if $cword > $i;
-                    #say "D:words increases ", @words-$len_before_split;
+                last unless $shorts =~ s/\A-([^-])(.*)/$2/;
+
+                my $opt = "-$1";
+                my $rest = $2;
+                my $opthash = $opts{$opt};
+                if (!$opthash) {
+                    # unknown option
+                    last SPLIT_BUNDLED;
                 }
+
+                $expects[$i]{short_only} = 1;
+                $expects[$i]{prefix} //= $word;
+
+                if ($opthash->{parsed}{max_vals}) {
+                    # option requires argument, slurp the rest as the option's
+                    # value
+                    $expects[$i]{word} = $rest;
+                    $expects[$i]{optval} = $opt;
+                    last SPLIT_BUNDLED;
+                }
+
+                my $len_before_split = @words;
+                my $j = $i+1;
+              SHORTOPT:
+                while ($shorts =~ s/(.)//) {
+                    $opt = "-$1";
+                    $opthash = $opts{$opt};
+
+                    if (!$opthash) {
+                        # we get -fz (where -f is a flag option and z is an
+                        # unknown option), we can't complete this so we return
+                        # an empty result.
+                        $expects[$i]{comp_result} = [];
+                        last SHORTOPT;
+                    } elsif ($opthash->{parsed}{max_vals}) {
+                        if (length $shorts) {
+                            # we get -fsblah (where -f is a flag option and -s
+                            # requires a value), let's complete this like we're
+                            # completing -s blah^ (completing option value)
+                            splice @words, $j, 0, $opt, '=', $shorts;
+                            $expects[$i]{do_complete_optname} = 0;
+                            $expects[$i]{optval} = $opt;
+                            $expects[$i]{word} = $shorts;
+                            $j += 3;
+                        } else {
+                            # we get -fs (where -f is a flag option and -s
+                            # requires a value), let's complete this using
+                            # ['-fs'] so bash adds a space.
+                            $expects[$i]{comp_result} =
+                                [$expects[$i]{prefix}];
+                            splice @words, $j, 0, $opt;
+                            $j++;
+                        }
+                        last SHORTOPT;
+                    } else {
+                        # we get another flag option
+                        $expects[$i]{prefix} .= $1;
+                        splice @words, $j, 0, $opt;
+                        $j++;
+                        # continue splitting
+                    }
+                }
+                $cword += @words-$len_before_split if $cword > $i;
+                #say "D:words increases ", @words-$len_before_split;
             }
 
             # split --foo=val -> --foo, =, val
@@ -466,14 +492,14 @@ sub complete_cli_arg {
         }
     }
 
-    #use DD; print "D:words: "; dd \@words;
-    #say "D:cword: $cword";
-    #use DD; print "D:expects: "; dd \@expects;
-    #use DD; print "D:seen_opts: "; dd \%seen_opts;
-    #use DD; print "D:parsed_opts: "; dd \%parsed_opts;
+    use DD; print "D:words: "; dd \@words;
+    say "D:cword: $cword";
+    use DD; print "D:expects: "; dd \@expects;
+    use DD; print "D:seen_opts: "; dd \%seen_opts;
+    use DD; print "D:parsed_opts: "; dd \%parsed_opts;
 
     my $exp = $expects[$cword];
-    my $word = $words[$cword];
+    my $word = $exp->{word} // $words[$cword];
 
     my @answers;
 
@@ -483,6 +509,10 @@ sub complete_cli_arg {
         last unless exists $exp->{optname};
         last if defined($exp->{do_complete_optname}) &&
             !$exp->{do_complete_optname};
+        if ($exp->{comp_result}) {
+            push @answers, $exp->{comp_result};
+            last;
+        }
         my $opt = $exp->{optname};
         my @o;
         for (@optnames) {
@@ -542,10 +572,14 @@ sub complete_cli_arg {
         if ($comp) {
             $log->tracef("[comp][compgl] invoking routine supplied from 'completion' argument to complete option value, option=<%s>", $opt);
             $compres = $comp->(%compargs);
+            Complete::Util::modify_answer(answer=>$compres, prefix=>$exp->{prefix})
+                if defined $exp->{prefix};
             $log->tracef('[comp][compgl] adding result from routine: %s', $compres);
         }
         if (!$compres || !$comp) {
             $compres = _default_completion(%compargs);
+            Complete::Util::modify_answer(answer=>$compres, prefix=>$exp->{prefix})
+                if defined $exp->{prefix};
             $log->tracef('[comp][compgl] adding result from default '.
                              'completion routine');
         }
