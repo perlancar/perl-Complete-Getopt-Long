@@ -400,6 +400,8 @@ sub complete_cli_arg {
                             $expects[$i]{do_complete_optname} = 0;
                             $expects[$i]{optval} = $opt;
                             $expects[$i]{word} = $shorts;
+                            substr($expects[$i]{prefix},
+                               -length($shorts)) = '';
                             $j += 3;
                         } else {
                             # we get -fs (where -f is a flag option and -s
@@ -413,7 +415,7 @@ sub complete_cli_arg {
                         last SHORTOPT;
                     } else {
                         # we get another flag option
-                        $expects[$i]{prefix} .= $1;
+                        $expects[$j]{prefix} = $expects[$i]{prefix};
                         splice @words, $j, 0, $opt;
                         $j++;
                         # continue splitting
@@ -441,7 +443,11 @@ sub complete_cli_arg {
                 $expects[$i]{optname} = $opt;
                 my $nth = $seen_opts{$opt} // 0;
                 $expects[$i]{nth} = $nth;
-                _mark_seen(\%seen_opts, $opt, \%opts);
+                for (defined($expects[$i]{prefix}) ?
+                         (map {"-$_"} split //, substr($expects[$i]{prefix}, 1)) :
+                             ($opt)) {
+                    _mark_seen(\%seen_opts, $_, \%opts);
+                }
 
                 my $min_vals = $opthash->{parsed}{min_vals};
                 my $max_vals = $opthash->{parsed}{max_vals};
@@ -492,11 +498,11 @@ sub complete_cli_arg {
         }
     }
 
-    use DD; print "D:words: "; dd \@words;
-    say "D:cword: $cword";
-    use DD; print "D:expects: "; dd \@expects;
-    use DD; print "D:seen_opts: "; dd \%seen_opts;
-    use DD; print "D:parsed_opts: "; dd \%parsed_opts;
+    #use DD; print "D:words: "; dd \@words;
+    #say "D:cword: $cword";
+    #use DD; print "D:expects: "; dd \@expects;
+    #use DD; print "D:seen_opts: "; dd \%seen_opts;
+    #use DD; print "D:parsed_opts: "; dd \%parsed_opts;
 
     my $exp = $expects[$cword];
     my $word = $exp->{word} // $words[$cword];
