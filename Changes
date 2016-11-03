@@ -1,5 +1,12 @@
 Revision history for Complete-Getopt-Long
 
+0.44    2016-11-04 (PERLANCAR)
+
+        - [Bugfix] Fix bugs completing short option bundles: -abcd^ was regarded
+          as completing -a^ (bcd was removed), -sVAL^ was not completable,
+          -abcs^ was not completed as [-abcs] to give automatic space.
+
+
 0.43    2016-10-28 (PERLANCAR)
 
         - [Bugfix] Properly fill 'parsed_opts' with all the option values, not
