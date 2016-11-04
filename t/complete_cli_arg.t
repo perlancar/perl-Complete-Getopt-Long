@@ -110,6 +110,32 @@ subtest basics => sub {
         result      => [qw/-fSa -fSaa/],
     );
     test_complete(
+        name        => 'option name (bundling 1)',
+        args        => {getopt_spec=>\%gospec,
+                        completion=>sub {
+                          my %args = @_;
+                          Complete::Util::complete_array_elem(
+                              word => $args{word},
+                              array => [qw/aa a b c/],
+                          );
+                      }},
+        comp_line0  => 'CMD -S^',
+        result      => [qw/-S/],
+    );
+    test_complete(
+        name        => 'option name (bundling 1b)',
+        args        => {getopt_spec=>\%gospec,
+                        completion=>sub {
+                          my %args = @_;
+                          Complete::Util::complete_array_elem(
+                              word => $args{word},
+                              array => [qw/aa a b c/],
+                          );
+                      }},
+        comp_line0  => 'CMD -Sa^',
+        result      => [qw/-Sa -Saa/],
+    );
+    test_complete(
         name        => 'option name (bundling 5)',
         args        => {getopt_spec=>\%gospec, },
         comp_line0  => 'CMD -f -1^',

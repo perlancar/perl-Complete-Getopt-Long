@@ -368,6 +368,7 @@ sub complete_cli_arg {
                 my $j = $i;
                 my $rest = substr($word, 1);
                 my @inswords;
+                my $encounter_equal_sign;
               EXPAND:
                 while (1) {
                     $rest =~ s/(.)// or last;
@@ -386,20 +387,34 @@ sub complete_cli_arg {
                         # stop after an option that requires value
                         _mark_seen(\%seen_opts, $opt, \%opts);
 
+                        if ($i == $j) {
+                            $words[$i] = $opt;
+                        } else {
+                            push @inswords, $opt;
+                            $j++;
+                        }
+
+                        my $expand;
                         if (length $rest) {
+                            $expand++;
                             # complete -Sfoo^ is completing option value
-                            $expects[$j+2]{do_complete_optname} = 0;
-                            $expects[$j+2]{optval} = $opt;
+                            $expects[$j > $i ? $j+1 : $j+2]{do_complete_optname} = 0;
+                            $expects[$j > $i ? $j+1 : $j+2]{optval} = $opt;
                         } else {
                             # complete -S^ as [-S] to add space
-                            $expects[$j+2]{optname} = $opt;
-                            $expects[$j+2]{comp_result} = [
+                            $expects[$j > $i ? $j-1 : $j]{optname} = $opt;
+                            $expects[$j > $i ? $j-1 : $j]{comp_result} = [
                                 substr($word, 0, length($word)-length($rest))];
                         }
 
-                        $rest =~ s/\A=//;
-                        push @inswords, $opt, "=", $rest;
-                        $j+=2;
+                        if ($rest =~ s/\A=//) {
+                            $encounter_equal_sign++;
+                        }
+
+                        if ($expand) {
+                            push @inswords, "=", $rest;
+                            $j+=2;
+                        }
                         last EXPAND;
                     }
                     # continue splitting
@@ -412,9 +427,10 @@ sub complete_cli_arg {
                     $j++;
                 }
 
-                #use DD; print "inswords: "; dd \@inswords;
+                #use DD; print "D:inswords: "; dd \@inswords;
 
-                my $prefix = substr($word, 0, length($word)-length($rest));
+                my $prefix = $encounter_equal_sign ? '' :
+                    substr($word, 0, length($word)-length($rest));
                 splice @words, $i+1, 0, @inswords;
                 for (0..@inswords) {
                     $expects[$i+$_]{prefix} = $prefix;
