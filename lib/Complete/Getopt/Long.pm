@@ -329,6 +329,9 @@ sub complete_cli_arg {
     # each element is a hash. if hash contains 'optname' key then it expects an
     # option name. if hash contains 'optval' key then it expects an option
     # value.
+    #
+    # 'short_only' means that the word is not to be completed with long option
+    # name, only (bundle of) one-letter option names.
 
     my @expects;
 
@@ -352,78 +355,76 @@ sub complete_cli_arg {
 
         if ($word =~ /\A-/) {
 
-            # split bundled short options
-          SPLIT_BUNDLED:
+            # check if it is a (bundle) of short option names
+          SHORT_OPTS:
             {
+                # it's not a known short option
+                last unless $opts{"-".substr($word,1,1)};
+
+                # not a bundle, regard as only a single short option name
                 last unless $bundling;
-                my $shorts = $word;
-                last unless $shorts =~ s/\A-([^-])(.*)/$2/;
 
-                my $opt = "-$1";
-                my $rest = $2;
-                my $opthash = $opts{$opt};
-                if (!$opthash) {
-                    # unknown option
-                    last SPLIT_BUNDLED;
-                }
-
-                $expects[$i]{short_only} = 1;
-                $expects[$i]{prefix} //= $word;
-
-                if ($opthash->{parsed}{max_vals}) {
-                    # option requires argument, slurp the rest as the option's
-                    # value
-                    $expects[$i]{word} = $rest;
-                    $expects[$i]{optval} = $opt;
-                    last SPLIT_BUNDLED;
-                }
-
-                my $len_before_split = @words;
-                my $j = $i+1;
-              SHORTOPT:
-                while ($shorts =~ s/(.)//) {
-                    $opt = "-$1";
-                    $opthash = $opts{$opt};
-
-                    if (!$opthash) {
-                        # we get -fz (where -f is a flag option and z is an
-                        # unknown option), we can't complete this so we return
-                        # an empty result.
-                        $expects[$i]{comp_result} = [];
-                        last SHORTOPT;
-                    } elsif ($opthash->{parsed}{max_vals}) {
-                        if (length $shorts) {
-                            # we get -fsblah (where -f is a flag option and -s
-                            # requires a value), let's complete this like we're
-                            # completing -s blah^ (completing option value)
-                            splice @words, $j, 0, $opt, '=', $shorts;
-                            $expects[$i]{do_complete_optname} = 0;
-                            $expects[$i]{optval} = $opt;
-                            $expects[$i]{word} = $shorts;
-                            substr($expects[$i]{prefix},
-                               -length($shorts)) = '';
-                            $j += 3;
-                        } else {
-                            # we get -fs (where -f is a flag option and -s
-                            # requires a value), let's complete this using
-                            # ['-fs'] so bash adds a space.
-                            $expects[$i]{comp_result} =
-                                [$expects[$i]{prefix}];
-                            splice @words, $j, 0, $opt;
-                            $j++;
-                        }
-                        last SHORTOPT;
-                    } else {
-                        # we get another flag option
-                        $expects[$j]{prefix} = $expects[$i]{prefix};
-                        splice @words, $j, 0, $opt;
-                        $j++;
-                        # continue splitting
+                # expand bundle
+                my $j = $i;
+                my $rest = substr($word, 1);
+                my @inswords;
+              EXPAND:
+                while (1) {
+                    $rest =~ s/(.)// or last;
+                    my $opt = "-$1";
+                    my $opthash = $opts{$opt};
+                    unless ($opthash) {
+                        # we encounter an unknown option, doubt that this is a
+                        # bundle of short option name, it could be someone
+                        # typing --long as -long
+                        @inswords = ();
+                        $expects[$i]{short_only} = 0;
+                        $rest = $word;
+                        last EXPAND;
                     }
+                    if ($opthash->{parsed}{max_vals}) {
+                        # stop after an option that requires value
+                        _mark_seen(\%seen_opts, $opt, \%opts);
+
+                        if (length $rest) {
+                            # complete -Sfoo^ is completing option value
+                            $expects[$j+2]{do_complete_optname} = 0;
+                            $expects[$j+2]{optval} = $opt;
+                        } else {
+                            # complete -S^ as [-S] to add space
+                            $expects[$j+2]{optname} = $opt;
+                            $expects[$j+2]{comp_result} = [
+                                substr($word, 0, length($word)-length($rest))];
+                        }
+
+                        $rest =~ s/\A=//;
+                        push @inswords, $opt, "=", $rest;
+                        $j+=2;
+                        last EXPAND;
+                    }
+                    # continue splitting
+                    _mark_seen(\%seen_opts, $opt, \%opts);
+                    if ($i == $j) {
+                        $words[$i] = $opt;
+                    } else {
+                        push @inswords, $opt;
+                    }
+                    $j++;
                 }
-                $cword += @words-$len_before_split if $cword > $i;
-                #say "D:words increases ", @words-$len_before_split;
-            }
+
+                #use DD; print "inswords: "; dd \@inswords;
+
+                my $prefix = substr($word, 0, length($word)-length($rest));
+                splice @words, $i+1, 0, @inswords;
+                for (0..@inswords) {
+                    $expects[$i+$_]{prefix} = $prefix;
+                    $expects[$i+$_]{word}   = $rest;
+                }
+                $cword += @inswords;
+                $i += @inswords;
+                $word = $words[$i];
+                $expects[$i]{short_only} //= 1;
+            } # SHORT_OPTS
 
             # split --foo=val -> --foo, =, val
           SPLIT_EQUAL:
@@ -443,11 +444,7 @@ sub complete_cli_arg {
                 $expects[$i]{optname} = $opt;
                 my $nth = $seen_opts{$opt} // 0;
                 $expects[$i]{nth} = $nth;
-                for (defined($expects[$i]{prefix}) ?
-                         (map {"-$_"} split //, substr($expects[$i]{prefix}, 1)) :
-                             ($opt)) {
-                    _mark_seen(\%seen_opts, $_, \%opts);
-                }
+                _mark_seen(\%seen_opts, $opt, \%opts);
 
                 my $min_vals = $opthash->{parsed}{min_vals};
                 my $max_vals = $opthash->{parsed}{max_vals};
@@ -498,14 +495,16 @@ sub complete_cli_arg {
         }
     }
 
+    my $exp = $expects[$cword];
+    my $word = $exp->{word} // $words[$cword];
+
     #use DD; print "D:words: "; dd \@words;
     #say "D:cword: $cword";
     #use DD; print "D:expects: "; dd \@expects;
     #use DD; print "D:seen_opts: "; dd \%seen_opts;
     #use DD; print "D:parsed_opts: "; dd \%parsed_opts;
-
-    my $exp = $expects[$cword];
-    my $word = $exp->{word} // $words[$cword];
+    #use DD; print "D:exp: "; dd $exp;
+    #use DD; say "D:word:<$word>";
 
     my @answers;
 
@@ -519,10 +518,10 @@ sub complete_cli_arg {
             push @answers, $exp->{comp_result};
             last;
         }
+        #say "D:completing option names";
         my $opt = $exp->{optname};
         my @o;
         for (@optnames) {
-            #say "D:$_";
             my $repeatable = 0;
             next if $exp->{short_only} && /\A--/;
             if ($seen_opts{$_}) {
@@ -565,6 +564,7 @@ sub complete_cli_arg {
     # complete option value
     {
         last unless exists($exp->{optval});
+        #say "D:completing option value";
         my $opt = $exp->{optval};
         my $opthash = $opts{$opt} if $opt;
         my %compargs = (
