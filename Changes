@@ -1,5 +1,13 @@
 Revision history for Complete-Getopt-Long
 
+0.45    2016-11-04 (PERLANCAR)
+
+        - [Bugfix] More bug fixes for completing short option bundle: -S^ (where
+          -S requires value) was completed directly with the values, it should
+          be consistent with -fS^ which completes to [-fS] to give space. So S^
+          completes to [-S].
+
+
 0.44    2016-11-04 (PERLANCAR)
 
         - [Bugfix] Fix bugs completing short option bundles: -abcd^ was regarded
