@@ -6,7 +6,7 @@ package Complete::Getopt::Long;
 use 5.010001;
 use strict;
 use warnings;
-use Log::Any::IfLOG '$log';
+#use Log::Any::IfLOG '$log';
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -25,11 +25,11 @@ sub _default_completion {
     my $word = $args{word} // '';
 
     my $fres;
-    $log->tracef('[comp][compgl] entering default completion routine');
+    #$log->tracef('[comp][compgl] entering default completion routine');
 
     # try completing '$...' with shell variables
     if ($word =~ /\A\$/) {
-        $log->tracef('[comp][compgl] completing shell variable');
+        #$log->tracef('[comp][compgl] completing shell variable');
         {
             my $compres = Complete::Env::complete_env(
                 word=>$word);
@@ -42,7 +42,7 @@ sub _default_completion {
 
     # try completing '~foo' with user dir (appending / if user's home exists)
     if ($word =~ m!\A~([^/]*)\z!) {
-        $log->tracef("[comp][compgl] completing userdir, user=%s", $1);
+        #$log->tracef("[comp][compgl] completing userdir, user=%s", $1);
         {
             eval { require Unix::Passwd::File };
             last if $@;
@@ -64,7 +64,7 @@ sub _default_completion {
     # expand ~foo (this is supported by complete_file(), so we just give it off
     # to the routine)
     if ($word =~ m!\A(~[^/]*)/!) {
-        $log->tracef("[comp][compgl] completing file, path=<%s>", $word);
+        #$log->tracef("[comp][compgl] completing file, path=<%s>", $word);
         $fres = {words=>Complete::File::complete_file(word=>$word),
                  path_sep=>'/'};
         goto RETURN_RES;
@@ -75,7 +75,7 @@ sub _default_completion {
     # treated like [AB]*.
     require String::Wildcard::Bash;
     if (String::Wildcard::Bash::contains_wildcard($word)) {
-        $log->tracef("[comp][compgl] completing with wildcard glob, glob=<%s>", "$word*");
+        #$log->tracef("[comp][compgl] completing with wildcard glob, glob=<%s>", "$word*");
         {
             my $compres = [glob("$word*")];
             last unless @$compres;
@@ -87,11 +87,11 @@ sub _default_completion {
         }
         # if empty, fallback to searching file
     }
-    $log->tracef("[comp][compgl] completing with file, file=<%s>", $word);
+    #$log->tracef("[comp][compgl] completing with file, file=<%s>", $word);
     $fres = {words=>Complete::File::complete_file(word=>$word),
              path_sep=>'/'};
   RETURN_RES:
-    $log->tracef("[comp][compgl] leaving default completion routine, result=%s", $fres);
+    #$log->tracef("[comp][compgl] leaving default completion routine, result=%s", $fres);
     $fres;
 }
 
@@ -292,8 +292,8 @@ sub complete_cli_arg {
     my $bundling = $args{bundling} // 1;
     my %parsed_opts;
 
-    $log->tracef('[comp][compgl] entering %s(), words=%s, cword=%d, word=<%s>',
-                 $fname, \@words, $cword, $words[$cword]);
+    #$log->tracef('[comp][compgl] entering %s(), words=%s, cword=%d, word=<%s>',
+    #             $fname, \@words, $cword, $words[$cword]);
 
     # parse all options first & supply default completion routine
     my %opts;
@@ -568,8 +568,8 @@ sub complete_cli_arg {
         #use DD; dd \@o;
         my $compres = Complete::Util::complete_array_elem(
             array => \@o, word => $word);
-        $log->tracef('[comp][compgl] adding result from option names, '.
-                         'matching options=%s', $compres);
+        #$log->tracef('[comp][compgl] adding result from option names, '.
+        #                 'matching options=%s', $compres);
         push @answers, $compres;
         if (!exists($exp->{optval}) && !exists($exp->{arg})) {
             $fres = {words=>$compres, esc_mode=>'option'};
@@ -592,18 +592,18 @@ sub complete_cli_arg {
         );
         my $compres;
         if ($comp) {
-            $log->tracef("[comp][compgl] invoking routine supplied from 'completion' argument to complete option value, option=<%s>", $opt);
+            #$log->tracef("[comp][compgl] invoking routine supplied from 'completion' argument to complete option value, option=<%s>", $opt);
             $compres = $comp->(%compargs);
             Complete::Util::modify_answer(answer=>$compres, prefix=>$exp->{prefix})
                 if defined $exp->{prefix};
-            $log->tracef('[comp][compgl] adding result from routine: %s', $compres);
+            #$log->tracef('[comp][compgl] adding result from routine: %s', $compres);
         }
         if (!$compres || !$comp) {
             $compres = _default_completion(%compargs);
             Complete::Util::modify_answer(answer=>$compres, prefix=>$exp->{prefix})
                 if defined $exp->{prefix};
-            $log->tracef('[comp][compgl] adding result from default '.
-                             'completion routine');
+            #$log->tracef('[comp][compgl] adding result from default '.
+            #                 'completion routine');
         }
         push @answers, $compres;
     }
@@ -618,22 +618,22 @@ sub complete_cli_arg {
             argpos=>$exp->{argpos}, seen_opts=>\%seen_opts,
             parsed_opts=>\%parsed_opts,
         );
-        $log->tracef('[comp][compgl] invoking \'completion\' routine '.
-                         'to complete argument');
+        #$log->tracef('[comp][compgl] invoking \'completion\' routine '.
+        #                 'to complete argument');
         my $compres = $comp->(%compargs) if $comp;
         if (!defined $compres) {
             $compres = _default_completion(%compargs);
-            $log->tracef('[comp][compgl] adding result from default '.
-                             'completion routine: %s', $compres);
+            #$log->tracef('[comp][compgl] adding result from default '.
+            #                 'completion routine: %s', $compres);
         }
         push @answers, $compres;
     }
 
-    $log->tracef("[comp][compgl] combining result from %d source(s)", ~~@answers);
+    #$log->tracef("[comp][compgl] combining result from %d source(s)", ~~@answers);
     $fres = Complete::Util::combine_answers(@answers) // [];
 
   RETURN_RES:
-    $log->tracef("[comp][compgl] leaving %s(), result=%s", $fname, $fres);
+    #$log->tracef("[comp][compgl] leaving %s(), result=%s", $fname, $fres);
     $fres;
 }
 
