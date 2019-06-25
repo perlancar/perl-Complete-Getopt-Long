@@ -592,7 +592,7 @@ sub complete_cli_arg {
         last unless exists($exp->{optval});
         #say "D:completing option value";
         my $opt = $exp->{optval};
-        my $opthash = $opts{$opt} if $opt;
+        my $opthash; $opthash = $opts{$opt} if $opt;
         my %compargs = (
             %$extras,
             type=>'optval', words=>\@words, cword=>$args{cword},
@@ -630,7 +630,7 @@ sub complete_cli_arg {
         );
         #$log->tracef('[comp][compgl] invoking \'completion\' routine '.
         #                 'to complete argument');
-        my $compres = $comp->(%compargs) if $comp;
+        my $compres; $compres = $comp->(%compargs) if $comp;
         if (!defined $compres) {
             $compres = _default_completion(%compargs);
             #$log->tracef('[comp][compgl] adding result from default '.

@@ -1,3 +1,8 @@
+0.470   2019-06-25 (PERLANCAR)
+
+	- Add argument 'summaries' to complete_cli_arg().
+
+
 0.46    2017-01-13 (PERLANCAR)
 
 	- No functional changes.
