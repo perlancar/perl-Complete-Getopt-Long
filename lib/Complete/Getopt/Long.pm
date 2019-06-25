@@ -151,6 +151,11 @@ _
             schema  => 'hash*',
             req     => 1,
         },
+        summaries => {
+            summary => 'Summary text for each option spec '.
+                '(key in `getopt_spec`)',
+            schema => 'hash*',
+        },
         completion => {
             summary     =>
                 'Completion routine to complete option value/argument',
@@ -287,6 +292,7 @@ sub complete_cli_arg {
     my @words = @{ $args{words} };
     defined(my $cword = $args{cword}) or die "Please specify cword";
     my $gospec = $args{getopt_spec} or die "Please specify getopt_spec";
+    my $summaries = $args{summaries};
     my $comp = $args{completion};
     my $extras = $args{extras} // {};
     my $bundling = $args{bundling} // 1;
@@ -537,11 +543,12 @@ sub complete_cli_arg {
         #say "D:completing option names";
         my $opt = $exp->{optname};
         my @o;
-        for (@optnames) {
+        my @osumms;
+        for my $optname (@optnames) {
             my $repeatable = 0;
-            next if $exp->{short_only} && /\A--/;
-            if ($seen_opts{$_}) {
-                my $opthash = $opts{$_};
+            next if $exp->{short_only} && $optname =~ /\A--/;
+            if ($seen_opts{$optname}) {
+                my $opthash = $opts{$optname};
                 my $ospecval = $gospec->{$opthash->{ospec}};
                 my $parsed = $opthash->{parsed};
                 if (ref($ospecval) eq 'ARRAY') {
@@ -552,22 +559,25 @@ sub complete_cli_arg {
             }
             # skip options that have been specified and not repeatable
             #use DD; dd {'$_'=>$_, seen=>$seen_opts{$_}, repeatable=>$repeatable, opt=>$opt};
-            next if $seen_opts{$_} && !$repeatable && (
+            next if $seen_opts{$optname} && !$repeatable && (
                 # long option has been specified
-                (!$opt || $opt ne $_) ||
+                (!$opt || $opt ne $optname) ||
                      # short option (in a bundle) has been specified
                     (defined($exp->{prefix}) &&
                          index($exp->{prefix}, substr($opt, 1, 1)) >= 0));
             if (defined $exp->{prefix}) {
-                my $o = $_; $o =~ s/\A-//;
+                my $o = $optname; $o =~ s/\A-//;
                 push @o, "$exp->{prefix}$o";
             } else {
-                push @o, $_;
+                push @o, $optname;
             }
+            push @osumms, $summaries->{ $opts{$optname}{ospec} } if $summaries;
         }
         #use DD; dd \@o;
         my $compres = Complete::Util::complete_array_elem(
-            array => \@o, word => $word);
+            array => \@o, word => $word,
+            (summaries => \@osumms) x !!$summaries,
+        );
         #$log->tracef('[comp][compgl] adding result from option names, '.
         #                 'matching options=%s', $compres);
         push @answers, $compres;
