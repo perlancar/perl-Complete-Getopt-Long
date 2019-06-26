@@ -300,36 +300,6 @@ subtest 'config bundling=0' => sub {
 
 };
 
-subtest 'arg:summaries' => sub {
-    my %gospec = (
-        'flag1'     => sub{},
-        'flag2'     => sub{},
-        'opt1=i'    => sub{},
-        'opt2=s'    => sub{},
-    );
-    my %summaries = (
-        'flag1'     => 'S1',
-        'flag2'     => 'S2',
-        'opt1=i'    => 'S4',
-        'opt2=s'    => 'S5',
-    );
-    test_complete(
-        name        => 'basics',
-        args        => {getopt_spec=>\%gospec, summaries=>\%summaries, bundling=>0},
-        comp_line0  => 'CMD -^',
-        result      => {
-            words   => [
-                {word=>'--flag1', summary=>'S1'},
-                {word=>'--flag2', summary=>'S2'},
-                {word=>'--opt1' , summary=>'S4'},
-                {word=>'--opt2' , summary=>'S5'},
-            ],
-            esc_mode => 'option',
-        },
-    );
-
-};
-
 subtest "default fallback completion" => sub {
     my $tempdir = tempdir(CLEANUP => 1);
     local $CWD = $tempdir;
