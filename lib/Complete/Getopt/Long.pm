@@ -6,7 +6,7 @@ package Complete::Getopt::Long;
 use 5.010001;
 use strict;
 use warnings;
-#use Log::Any::IfLOG '$log';
+use Log::ger;
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -151,11 +151,6 @@ _
             schema  => 'hash*',
             req     => 1,
         },
-        summaries => {
-            summary => 'Summary text for each option spec '.
-                '(key in `getopt_spec`)',
-            schema => 'hash*',
-        },
         completion => {
             summary     =>
                 'Completion routine to complete option value/argument',
@@ -292,7 +287,6 @@ sub complete_cli_arg {
     my @words = @{ $args{words} };
     defined(my $cword = $args{cword}) or die "Please specify cword";
     my $gospec = $args{getopt_spec} or die "Please specify getopt_spec";
-    my $summaries = $args{summaries};
     my $comp = $args{completion};
     my $extras = $args{extras} // {};
     my $bundling = $args{bundling} // 1;
@@ -310,9 +304,11 @@ sub complete_cli_arg {
         $res->{min_vals} //= $res->{type} ? 1 : 0;
         $res->{max_vals} //= $res->{type} || $res->{opttype} ? 1:0;
         for my $o0 (@{ $res->{opts} }) {
-            my @o = $res->{is_neg} && length($o0) > 1 ?
-                ($o0, "no$o0", "no-$o0") : ($o0);
-            for my $o (@o) {
+            my @ary = $res->{is_neg} && length($o0) > 1 ?
+                ([$o0, 0], ["no$o0",1], ["no-$o0",1]) : ([$o0,0]);
+            for my $elem (@ary) {
+                my $o = $elem->[0];
+                my $is_neg = $elem->[1];
                 my $k = length($o)==1 ||
                     (!$bundling && $res->{dash_prefix} eq '-') ?
                         "-$o" : "--$o";
@@ -320,11 +316,82 @@ sub complete_cli_arg {
                     name => $k,
                     ospec => $ospec, # key to getopt specification
                     parsed => $res,
+                    is_neg => $is_neg,
                 };
             }
         }
     }
     my @optnames = sort keys %opts;
+
+    my $code_get_summary = sub {
+        # currently we only extract summaries from Rinci metadata and
+        # Perinci::CmdLine object
+        return unless $extras;
+        my $ggls_res = $extras->{ggls_res};
+        return unless $ggls_res;
+        my $cmdline = $extras->{cmdline};
+        return unless $cmdline;
+        my $r = $extras->{r};
+        return unless $r;
+
+        my $optname = shift;
+        my $ospec  = $opts{$optname}{ospec};
+        return unless $ospec; # shouldn't happen
+        my $specmeta = $ggls_res->[3]{'func.specmeta'};
+        my $ospecmeta = $specmeta->{$ospec};
+
+        if ($ospecmeta->{is_alias}) {
+            my $real_ospecmeta = $specmeta->{ $ospecmeta->{alias_for} };
+            my $real_opt = $real_ospecmeta->{parsed}{opts}[0];
+            $real_opt = length($real_opt) == 1 ? "-$real_opt" : "--$real_opt";
+            return "Alias for $real_opt";
+        }
+
+        if (defined(my $coptname = $ospecmeta->{common_opt})) {
+            # it's a common Perinci::CmdLine option
+            my $coptspec = $cmdline->{common_opts}{$coptname};
+            #use DD; dd $coptspec;
+            return unless $coptspec;
+
+            my $summ;
+            # XXX translate
+            if ($opts{$optname}{is_neg}) {
+                $summ = $coptspec->{"summary.alt.bool.not"};
+                return $summ if defined $summ;
+                my $pos_opt = $ospecmeta->{pos_opts}[0];
+                $pos_opt = length($pos_opt) == 1 ? "-$pos_opt" : "--$pos_opt";
+                return "The opposite of $pos_opt";
+            } else {
+                $summ = $coptspec->{"summary.alt.bool.yes"};
+                return $summ if defined $summ;
+                $summ = $coptspec->{"summary"};
+                return $summ if defined $summ;
+            }
+        } else {
+            # it's option from function argument
+            my $arg = $ospecmeta->{arg};
+            my $argspec = $extras->{r}{meta}{args}{$arg};
+            #use DD; dd $argspec;
+
+            my $summ;
+            # XXX translate
+            #use DD; dd {optname=>$optname, ospecmeta=>$ospecmeta};
+            if ($ospecmeta->{is_neg}) {
+                $summ = $argspec->{"summary.alt.bool.not"};
+                return $summ if defined $summ;
+                my $pos_opt = $ospecmeta->{pos_opts}[0];
+                $pos_opt = length($pos_opt) == 1 ? "-$pos_opt" : "--$pos_opt";
+                return "The opposite of $pos_opt";
+            } else {
+                $summ = $argspec->{"summary.alt.bool.yes"};
+                return $summ if defined $summ;
+                $summ = $argspec->{"summary"};
+                return $summ if defined $summ;
+            }
+        }
+
+        return;
+    };
 
     my %seen_opts;
 
@@ -544,6 +611,7 @@ sub complete_cli_arg {
         my $opt = $exp->{optname};
         my @o;
         my @osumms;
+        my $o_has_summaries;
         for my $optname (@optnames) {
             my $repeatable = 0;
             next if $exp->{short_only} && $optname =~ /\A--/;
@@ -571,12 +639,19 @@ sub complete_cli_arg {
             } else {
                 push @o, $optname;
             }
-            push @osumms, $summaries->{ $opts{$optname}{ospec} } if $summaries;
+            my $summ = $code_get_summary->($optname) // '';
+            if (length $summ) {
+                $o_has_summaries = 1;
+                push @osumms, $summ;
+            } else {
+                push @osumms, '';
+            }
         }
         #use DD; dd \@o;
+        #use DD; dd \@osumms;
         my $compres = Complete::Util::complete_array_elem(
             array => \@o, word => $word,
-            (summaries => \@osumms) x !!$summaries,
+            (summaries => \@osumms) x !!$o_has_summaries,
         );
         #$log->tracef('[comp][compgl] adding result from option names, '.
         #                 'matching options=%s', $compres);
