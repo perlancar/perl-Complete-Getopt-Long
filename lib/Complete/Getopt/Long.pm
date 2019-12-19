@@ -1,6 +1,8 @@
 package Complete::Getopt::Long;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -65,8 +67,10 @@ sub _default_completion {
     # to the routine)
     if ($word =~ m!\A(~[^/]*)/!) {
         #$log->tracef("[comp][compgl] completing file, path=<%s>", $word);
-        $fres = {words=>Complete::File::complete_file(word=>$word),
-                 path_sep=>'/'};
+        $fres = Complete::Util::hashify_answer(
+            Complete::File::complete_file(word=>$word),
+            {path_sep=>'/'}
+        );
         goto RETURN_RES;
     }
 
@@ -88,8 +92,10 @@ sub _default_completion {
         # if empty, fallback to searching file
     }
     #$log->tracef("[comp][compgl] completing with file, file=<%s>", $word);
-    $fres = {words=>Complete::File::complete_file(word=>$word),
-             path_sep=>'/'};
+    $fres = Complete::Util::hashify_answer(
+        Complete::File::complete_file(word=>$word),
+        {path_sep=>'/'}
+    );
   RETURN_RES:
     #$log->tracef("[comp][compgl] leaving default completion routine, result=%s", $fres);
     $fres;
