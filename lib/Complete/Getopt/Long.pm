@@ -19,6 +19,8 @@ our @EXPORT_OK = qw(
 our %SPEC;
 
 our $COMPLETE_GETOPT_LONG_TRACE=$ENV{COMPLETE_GETOPT_LONG_TRACE} // 0;
+our $COMPLETE_GETOPT_LONG_DEFAULT_ENV = $ENV{COMPLETE_GETOPT_LONG_DEFAULT_ENV} // 1;
+our $COMPLETE_GETOPT_LONG_DEFAULT_FILE = $ENV{COMPLETE_GETOPT_LONG_DEFAULT_FILE} // 1;
 
 sub _default_completion {
     require Complete::Env;
@@ -32,7 +34,7 @@ sub _default_completion {
     log_trace('[comp][compgl] entering default completion routine') if $COMPLETE_GETOPT_LONG_TRACE;
 
     # try completing '$...' with shell variables
-    if ($word =~ /\A\$/) {
+    if ($word =~ /\A\$/ && $COMPLETE_GETOPT_LONG_DEFAULT_ENV) {
         log_trace('[comp][compgl] completing shell variable') if $COMPLETE_GETOPT_LONG_TRACE;
         {
             my $compres = Complete::Env::complete_env(
@@ -45,7 +47,7 @@ sub _default_completion {
     }
 
     # try completing '~foo' with user dir (appending / if user's home exists)
-    if ($word =~ m!\A~([^/]*)\z!) {
+    if ($word =~ m!\A~([^/]*)\z! && $COMPLETE_GETOPT_LONG_DEFAULT_FILE) {
         log_trace("[comp][compgl] completing userdir, user=%s", $1) if $COMPLETE_GETOPT_LONG_TRACE;
         {
             eval { require Unix::Passwd::File };
@@ -67,7 +69,7 @@ sub _default_completion {
     # try completing '~/blah' or '~foo/blah' as if completing file, but do not
     # expand ~foo (this is supported by complete_file(), so we just give it off
     # to the routine)
-    if ($word =~ m!\A(~[^/]*)/!) {
+    if ($word =~ m!\A(~[^/]*)/! && $COMPLETE_GETOPT_LONG_DEFAULT_FILE) {
         log_trace("[comp][compgl] completing file, path=<%s>", $word) if $COMPLETE_GETOPT_LONG_TRACE;
         $fres = Complete::Util::hashify_answer(
             Complete::File::complete_file(word=>$word),
@@ -80,7 +82,7 @@ sub _default_completion {
     # convenience, we add '*' at the end so that when user type [AB] it is
     # treated like [AB]*.
     require String::Wildcard::Bash;
-    if (String::Wildcard::Bash::contains_wildcard($word)) {
+    if (String::Wildcard::Bash::contains_wildcard($word) && $COMPLETE_GETOPT_LONG_DEFAULT_FILE) {
         log_trace("[comp][compgl] completing with wildcard glob, glob=<%s>", "$word*") if $COMPLETE_GETOPT_LONG_TRACE;
         {
             my $compres = [glob("$word*")];
@@ -93,11 +95,15 @@ sub _default_completion {
         }
         # if empty, fallback to searching file
     }
-    log_trace("[comp][compgl] completing with file, file=<%s>", $word) if $COMPLETE_GETOPT_LONG_TRACE;
-    $fres = Complete::Util::hashify_answer(
-        Complete::File::complete_file(word=>$word),
-        {path_sep=>'/'}
-    );
+
+    if ($COMPLETE_GETOPT_LONG_DEFAULT_FILE) {
+        log_trace("[comp][compgl] completing with file, file=<%s>", $word) if $COMPLETE_GETOPT_LONG_TRACE;
+        $fres = Complete::Util::hashify_answer(
+            Complete::File::complete_file(word=>$word),
+            {path_sep=>'/'}
+        );
+    }
+
   RETURN_RES:
     log_trace("[comp][compgl] leaving default completion routine, result=%s", $fres) if $COMPLETE_GETOPT_LONG_TRACE;
     $fres;
@@ -747,6 +753,16 @@ See L<Getopt::Long::Complete> for an easy way to use this module.
 
 Bool. If set to true, will generated more log statements for debugging (at the
 trace level).
+
+=head2 COMPLETE_GETOPT_LONG_DEFAULT_ENV
+
+Bool. Default true. Can be set to false to disable completing from environment
+variable in default completion.
+
+=head2 COMPLETE_GETOPT_LONG_DEFAULT_FILE
+
+Bool. Default true. Can be set to false to disable completing from filesystem
+(file and directory names) in default completion.
 
 
 =head1 SEE ALSO
