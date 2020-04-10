@@ -319,6 +319,9 @@ sub complete_cli_arg {
     log_trace('[comp][compgl] entering %s(), words=%s, cword=%d, word=<%s>',
               $fname, \@words, $cword, $words[$cword]) if $COMPLETE_GETOPT_LONG_TRACE;
 
+    # strip hash storage from getopt_spec
+    shift @$gospec if ref $gospec->[0] eq 'HASH';
+
     # parse all options first & supply default completion routine
     my %opts;
     my $i = -1;

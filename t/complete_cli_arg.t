@@ -23,6 +23,15 @@ subtest "backward compatibility: hash getopt_spec still accepted" => sub {
     );
 };
 
+subtest "Getopt::Long compliance: hash storage supported" => sub {
+    test_complete(
+        name        => 'option name',
+        args        => {getopt_spec=>[{}, 'foo', 'bar'], completion=>sub{[]}},
+        comp_line0  => 'CMD ^',
+        result      => [qw/--bar --foo/],
+    );
+};
+
 subtest basics => sub {
     my @gospec = (
         'flag1|1',
