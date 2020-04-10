@@ -1,7 +1,7 @@
 0.477   2020-04-10  Released-By: PERLANCAR; Urgency: medium
 
-	- Recognize (and ignore) hash storage in first argument of
-	  Getopt::Long specification.
+	- Better compliance with Getopt::Long: Recognize (and ignore) hash
+	  storage in first argument of Getopt::Long specification.
 
 
 0.476   2020-04-10  Released-By: PERLANCAR; Urgency: medium
