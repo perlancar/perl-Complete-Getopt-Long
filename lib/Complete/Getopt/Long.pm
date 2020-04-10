@@ -307,7 +307,14 @@ sub complete_cli_arg {
     my %parsed_opts;
 
     # backward compatibility: gospec was expected to be a hash, now an array
-    $gospec = [%$gospec] if ref $gospec eq 'HASH';
+    if (ref $gospec eq 'HASH') {
+        my $ary_gospec = [];
+        for (keys %$gospec) {
+            push @$ary_gospec, $_;
+            push @$ary_gospec, $gospec->{$_} if ref $gospec->{$_};
+        }
+        $gospec = $ary_gospec;
+    }
 
     log_trace('[comp][compgl] entering %s(), words=%s, cword=%d, word=<%s>',
               $fname, \@words, $cword, $words[$cword]) if $COMPLETE_GETOPT_LONG_TRACE;
