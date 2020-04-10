@@ -162,7 +162,7 @@ _
     args => {
         getopt_spec => {
             summary => 'Getopt::Long specification',
-            schema  => 'hash*',
+            schema  => 'array*',
             req     => 1,
         },
         completion => {
@@ -205,11 +205,11 @@ Example:
     use Complete::Unix qw(complete_user);
     use Complete::Util qw(complete_array_elem);
     complete_cli_arg(
-        getopt_spec => {
+        getopt_spec => [
             'help|h'   => sub{...},
             'format=s' => \$format,
             'user=s'   => \$user,
-        },
+        ],
         completion  => sub {
             my %args  = @_;
             my $word  = $args{word};
@@ -306,12 +306,20 @@ sub complete_cli_arg {
     my $bundling = $args{bundling} // 1;
     my %parsed_opts;
 
+    # backward compatibility: gospec was expected to be a hash, now an array
+    $gospec = [%$gospec] if ref $gospec eq 'HASH';
+
     log_trace('[comp][compgl] entering %s(), words=%s, cword=%d, word=<%s>',
               $fname, \@words, $cword, $words[$cword]) if $COMPLETE_GETOPT_LONG_TRACE;
 
     # parse all options first & supply default completion routine
     my %opts;
-    for my $ospec (keys %$gospec) {
+    my $i = -1;
+    while (++$i <= $#{$gospec}) {
+        my $ospec = $gospec->[$i];
+        my $dest  = $i+1 <= $#{$gospec} && ref $gospec->[$i+1] ?
+            splice(@$gospec, $i+1, 1) : undef;
+
         my $res = Getopt::Long::Util::parse_getopt_long_opt_spec($ospec)
             or die "Can't parse option spec '$ospec'";
         next if $res->{is_arg};
@@ -328,7 +336,8 @@ sub complete_cli_arg {
                         "-$o" : "--$o";
                 $opts{$k} = {
                     name => $k,
-                    ospec => $ospec, # key to getopt specification
+                    ospec => $ospec,
+                    dest  => $dest,
                     parsed => $res,
                     is_neg => $is_neg,
                 };
@@ -422,7 +431,7 @@ sub complete_cli_arg {
 
     my @expects;
 
-    my $i = -1;
+    $i = -1;
     my $argpos = 0;
 
   WORD:
@@ -631,9 +640,9 @@ sub complete_cli_arg {
             next if $exp->{short_only} && $optname =~ /\A--/;
             if ($seen_opts{$optname}) {
                 my $opthash = $opts{$optname};
-                my $ospecval = $gospec->{$opthash->{ospec}};
                 my $parsed = $opthash->{parsed};
-                if (ref($ospecval) eq 'ARRAY') {
+                my $dest = $opthash->{dest};
+                if (ref $dest eq 'ARRAY') {
                     $repeatable = 1;
                 } elsif ($parsed->{desttype} || $parsed->{is_inc}) {
                     $repeatable = 1;
