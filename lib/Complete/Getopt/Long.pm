@@ -576,8 +576,9 @@ sub complete_cli_arg {
                 if ($i+1 < @words && $words[$i+1] eq '=') {
                     $i++;
                     $expects[$i] = {separator=>1, optval=>$opt, word=>'', nth=>$nth};
-                    # force a value due to =
-                    if (!$max_vals) { $min_vals = $max_vals = 1 }
+                    # force expecting a value due to =
+                    $min_vals = 1;
+                    $max_vals = $min_vals if $max_vals < $min_vals;
                 }
 
                 for (1 .. $min_vals) {
