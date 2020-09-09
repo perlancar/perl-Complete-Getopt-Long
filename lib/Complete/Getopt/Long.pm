@@ -368,6 +368,8 @@ sub complete_cli_arg {
         my $specmeta = $ggls_res->[3]{'func.specmeta'};
         my $ospecmeta = $specmeta->{$ospec};
 
+        return $ospecmeta->{summary} if defined $ospecmeta->{summary};
+
         if ($ospecmeta->{is_alias}) {
             my $real_ospecmeta = $specmeta->{ $ospecmeta->{alias_for} };
             my $real_opt = $real_ospecmeta->{parsed}{opts}[0];
