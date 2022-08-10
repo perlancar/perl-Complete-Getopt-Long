@@ -25,7 +25,7 @@
 	  storage in first argument of Getopt::Long specification.
 
 
-0.476   2020-04-10  Released-By: PERLANCAR; Urgency: medium
+0.476   2020-04-10  Released-By: PERLANCAR; Urgency: high
 
 	- Better compliance with Getopt::Long: options specification is now an
 	  array instead of a hash. Not every option spec needs to be followed by
