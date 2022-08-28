@@ -357,10 +357,9 @@ sub complete_cli_arg {
         return unless $extras;
         my $ggls_res = $extras->{ggls_res};
         return unless $ggls_res;
-        my $cmdline = $extras->{cmdline};
-        return unless $cmdline;
         my $r = $extras->{r};
         return unless $r;
+        my $cmdline = $extras->{cmdline};
 
         my $optname = shift;
         my $ospec  = $opts{$optname}{ospec};
@@ -379,7 +378,8 @@ sub complete_cli_arg {
 
         if (defined(my $coptname = $ospecmeta->{common_opt})) {
             # it's a common Perinci::CmdLine option
-            my $coptspec = $cmdline->{common_opts}{$coptname};
+            my $coptspec = $cmdline ? $cmdline->{common_opts}{$coptname} :
+                $r->{common_opts} ? $r->{common_opts}{$coptname} : undef;
             #use DD; dd $coptspec;
             return unless $coptspec;
 
