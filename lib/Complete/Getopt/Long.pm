@@ -1,17 +1,17 @@
 package Complete::Getopt::Long;
 
-# AUTHORITY
-# DATE
-# DIST
-# VERSION
-
 use 5.010001;
 use strict;
 use warnings;
 use Log::ger;
 
-require Exporter;
-our @ISA = qw(Exporter);
+use Exporter 'import';
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
 our @EXPORT_OK = qw(
                        complete_cli_arg
                );

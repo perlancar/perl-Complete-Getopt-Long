@@ -1,3 +1,10 @@
+0.481   2022-08-28  Released-By: PERLANCAR; Urgency: medium
+
+        - Don't require 'cmdline' in 'extras' argument to get summary; also
+          search for summaries for common options in 'r' (in key
+          'common_opts').
+
+
 0.480   2020-09-09  Released-By: PERLANCAR; Urgency: medium
 
 	- Use alias summary provided in func.specmeta (produced by
